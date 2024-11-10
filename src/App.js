@@ -5,8 +5,10 @@ import {
   Routes,
   Route,
 } from "react-router-dom";
-import Home from "./pages/table-main";
 import Navbar from "./components/navbar";
+import TablePage from "./pages/table-main";
+import GraphSunburst from './pages/graph-sunburst';
+import LinePage from './pages/graph-line'
 
 function App() {
 
@@ -42,7 +44,9 @@ function App() {
     <Router>
             <Navbar />
             <Routes>
-                <Route exact path="/" element={<Home operatorsData={operatorsData}/>}/>
+                <Route exact path="/table_page" element={<TablePage operatorsData={operatorsData}/>}/>
+                <Route exact path="/graph_sunburst" element={<GraphSunburst operatorsData={operatorsData}/>}/>
+                <Route exact path="/graph_line" element={<LinePage operatorsData={operatorsData}/>}/>
             </Routes>
         </Router>
   );

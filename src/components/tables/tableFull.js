@@ -1,10 +1,23 @@
-import React, { useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Box, Stack } from '@mui/material';
 import {
   MaterialReactTable,
   useMaterialReactTable
 } from "material-react-table";
 
-export default function TableFull ({operatorsList}) {
+export default function TableFull ({operatorsListMain}) {
+  const [operatorsList, setOperatorsList] = useState(operatorsListMain)
+
+  const statAverageHealth = useMemo(
+    () => operatorsList.reduce((acc, curr) => acc + curr.combat_hp, 0) / operatorsList.length,
+    [],
+  );
+
+//whole and filtered for each
+
+//average
+//max
+//min
 
   const columns = useMemo(
     () => [
@@ -20,6 +33,7 @@ export default function TableFull ({operatorsList}) {
             Cell: ({ renderedCellValue }) => <strong>{renderedCellValue}</strong>,
             enableHiding: false,
             filterVariant: 'multi-select',
+            enableGrouping: false, 
           },
           {
             accessorKey: "name_real",
@@ -232,10 +246,32 @@ export default function TableFull ({operatorsList}) {
             accessorKey: "combat_hp",
             header: "Health Points",
             muiTableHeadCellProps: { sx: { color: "red" } }, 
-            Cell: ({ renderedCellValue }) => <strong>{renderedCellValue}</strong>,
             enableColumnDragging: true,
             filterVariant: 'range',
-        filterFn: 'between',
+          filterFn: 'between',
+          aggregationFn: 'mean',
+          AggregatedCell: ({ cell, table }) => (
+            <>
+              <Box>
+              Average by{' '}
+              {table.getColumn(cell.row.groupingColumnId ?? '').columnDef.header}:{' '}
+                {Math.round(cell.getValue())?.toLocaleString()}
+              </Box>
+            </>
+          ),
+          Cell: ({ cell }) => (
+            <strong>
+              {cell.getValue()?.toLocaleString()}
+            </strong>
+          ),
+        Footer: () => (
+          <Stack>
+            <Box sx={{ fontWeight: 'bold' }}>
+            Average by All:{' '}
+              {Math.round(statAverageHealth).toLocaleString()}
+            </Box>
+          </Stack>
+        ),
           },
           {
             accessorKey: "combat_atk",
@@ -300,10 +336,10 @@ export default function TableFull ({operatorsList}) {
             filterVariant: 'range',
         filterFn: 'between',
           },
-        ]}
-
+        ]
+      }
     ],
-    []
+    [statAverageHealth]
   );
 
   const table = useMaterialReactTable({
@@ -319,11 +355,11 @@ export default function TableFull ({operatorsList}) {
     enableColumnPinning: true,
     // enablePagination: false,
     enableRowPinning: true,
-    enableRowSelection: true,
+    // enableRowSelection: true,
     rowPinningDisplayMode: 'select-sticky',
     initialState: {
       showColumnFilters: true,
-      // density: 'compact',
+      density: 'compact',
       pagination:{pageSize: 25,},
       columnVisibility: {
         name_real: false,
@@ -344,7 +380,7 @@ export default function TableFull ({operatorsList}) {
         skills_tacticalAcumen: false,
         skills_combat: false,
         skills_artsAdaptability:false,
-        combat_hp: false,
+        // combat_hp: false,
         combat_atk: false,
         combat_def:false,
         combat_res:false,
@@ -352,13 +388,12 @@ export default function TableFull ({operatorsList}) {
         combat_cost:false,
         combat_blk:false,
         combat_atkspd:false,
-
       }
-    },
-    
-  });
+    }, 
+  }
+);
 
-//   console.log(table.getFilteredRowModel().rows.map(row => row.original))
-
-  return <MaterialReactTable table={table} />;
+return <div>
+    <MaterialReactTable table={table} />;
+    </div>
 }

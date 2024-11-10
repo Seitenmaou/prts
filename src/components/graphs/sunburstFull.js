@@ -1,20 +1,19 @@
 import React from 'react';
 import Plot from 'react-plotly.js';
 
-export default function SunbrustFull ({operatorsList}) {
+export default function SunbrustFull ({operatorsList, title, keys}) {
 
 var listID = [];
 var listLabel = [];
 var listParent = [];
-var title = "Rhodes Island"
-var keys = ["operatorRecords_class","operatorRecords_job","name_code"];
+
 var keyLength = keys.length;
 var sunBurstDepth = keyLength + 1;
 
 operatorsList.forEach(row => {
-  var idString = keys.map(key => row[key] || null).join('>')
+  var idString = keys.map(key => key + "_" + row[key] || null).join('>')
   listID.push(idString);
-  listLabel.push(idString.substring(idString.lastIndexOf('>') + 1, idString.length));
+  listLabel.push(idString.substring(idString.lastIndexOf('_') + 1, idString.length));
   listParent.push(idString.substring(0, idString.lastIndexOf('>')));
 });
 keyLength--;
@@ -24,7 +23,7 @@ while(keyLength > 1){
   currentIndex = listID.length;
   subListID.forEach(row => {
     listID.push(row);
-    listLabel.push(row.substring(row.lastIndexOf('>') + 1, row.length));
+    listLabel.push(row.substring(row.lastIndexOf('_') + 1, row.length));
     listParent.push(row.substring(0, row.lastIndexOf('>')));
   })
   subListID = [... new Set (listParent.slice(currentIndex, listID.length))]
@@ -33,12 +32,10 @@ while(keyLength > 1){
 
 subListID.forEach(row => {
   listID.push(row);
-  listLabel.push(row);
+  listLabel.push(row.substring(row.lastIndexOf('_') + 1, row.length));
   listParent.push(title);
 
 })
-
-
 
     var data = [{
         type: "sunburst",
