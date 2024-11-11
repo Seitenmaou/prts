@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import TableFull from "../../components/tables/tableFull"
+import TableFull from "../components/tables/tableFull"
 
 export default function Home (operatorsData) {
   const [operatorsListMain, setOperatorsListMain] = useState(operatorsData?.operatorsData || [] );

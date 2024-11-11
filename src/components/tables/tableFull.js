@@ -380,7 +380,7 @@ export default function TableFull ({operatorsListMain}) {
         skills_tacticalAcumen: false,
         skills_combat: false,
         skills_artsAdaptability:false,
-        // combat_hp: false,
+        combat_hp: false,
         combat_atk: false,
         combat_def:false,
         combat_res:false,

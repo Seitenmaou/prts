@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import SunBustFull from "../../components/graphs/sunburstFull"
+import SunBustFull from "../components/graphs/sunburstFull"
 import { DndContext } from "@dnd-kit/core";
-import Draggable from "../../components/drag-drop/draggable";
-import Droppable from '../../components/drag-drop/droppable';
+import Draggable from "../components/drag-drop/draggable";
+import Droppable from '../components/drag-drop/droppable';
 
 export default function GraphSunburst (operatorsData) {
   const [operatorsListMain, setOperatorsListMain] = useState(operatorsData?.operatorsData || [] );

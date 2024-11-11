@@ -1,0 +1,20 @@
+.container {
+    display: flex;
+    margin: 10px;
+    padding: 10px;
+    background-color: lightgray;
+}
+
+#photo {
+    width: 100px;
+    height: 100px;
+    background-color: lightskyblue;
+}
+
+#mainDetails {
+    display: flex;
+}
+
+ul {
+    list-style-type: none;
+}
