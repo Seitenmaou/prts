@@ -3,12 +3,16 @@
     margin: 10px;
     padding: 10px;
     background-color: lightgray;
+    justify-content: center;
 }
 
 #photo {
-    width: 100px;
-    height: 100px;
+    display: flex;
+    width: 300px;
+    height: 400px;
     background-color: lightskyblue;
+    justify-content: center;
+    align-items: center;
 }
 
 #mainDetails {
@@ -17,4 +21,8 @@
 
 ul {
     list-style-type: none;
+}
+
+.comparableStats {
+    text-align: center;
 }

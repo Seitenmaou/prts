@@ -30,7 +30,7 @@ export default function TableFull ({operatorsListMain}) {
             accessorKey: "name_code",
             header: "Code Name",
             muiTableHeadCellProps: { sx: { color: "black" } }, 
-            Cell: ({ renderedCellValue }) => <strong>{renderedCellValue}</strong>,
+            Cell: ({ cell, row }) => <a href={`../${row.original.ID}`}><strong>{cell.getValue()}</strong></a>,
             enableHiding: false,
             filterVariant: 'multi-select',
             enableGrouping: false, 
