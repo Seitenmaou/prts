@@ -12,6 +12,34 @@ export default function TableFull ({operatorsListMain}) {
     () => operatorsList.reduce((acc, curr) => acc + curr.combat_hp, 0) / operatorsList.length,
     [],
   );
+  const statAverageAttack = useMemo(
+    () => operatorsList.reduce((acc, curr) => acc + curr.combat_atk, 0) / operatorsList.length,
+    [],
+  );
+  const statAverageDefense = useMemo(
+    () => operatorsList.reduce((acc, curr) => acc + curr.combat_def, 0) / operatorsList.length,
+    [],
+  );
+  const statAverageResistance = useMemo(
+    () => operatorsList.reduce((acc, curr) => acc + curr.combat_res, 0) / operatorsList.length,
+    [],
+  );
+  const statAverageCooldown = useMemo(
+    () => operatorsList.reduce((acc, curr) => acc + curr.combat_cldn, 0) / operatorsList.length,
+    [],
+  );
+  const statAverageCost = useMemo(
+    () => operatorsList.reduce((acc, curr) => acc + curr.combat_cost, 0) / operatorsList.length,
+    [],
+  );
+  const statAverageBlock = useMemo(
+    () => operatorsList.reduce((acc, curr) => acc + curr.combat_blk, 0) / operatorsList.length,
+    [],
+  );
+  const statAverageSpeed = useMemo(
+    () => operatorsList.reduce((acc, curr) => acc + curr.combat_atkspd, 0) / operatorsList.length,
+    [],
+  );
 
 //whole and filtered for each
 
@@ -281,6 +309,29 @@ export default function TableFull ({operatorsListMain}) {
             enableColumnDragging: true,
             filterVariant: 'range',
         filterFn: 'between',
+        aggregationFn: 'mean',
+          AggregatedCell: ({ cell, table }) => (
+            <>
+              <Box>
+              Average by{' '}
+              {table.getColumn(cell.row.groupingColumnId ?? '').columnDef.header}:{' '}
+                {Math.round(cell.getValue())?.toLocaleString()}
+              </Box>
+            </>
+          ),
+          Cell: ({ cell }) => (
+            <strong>
+              {cell.getValue()?.toLocaleString()}
+            </strong>
+          ),
+        Footer: () => (
+          <Stack>
+            <Box sx={{ fontWeight: 'bold' }}>
+            Average by All:{' '}
+              {Math.round(statAverageHealth).toLocaleString()}
+            </Box>
+          </Stack>
+        ),
           },
           {
             accessorKey: "combat_def",
@@ -290,6 +341,29 @@ export default function TableFull ({operatorsListMain}) {
             enableColumnDragging: true,
             filterVariant: 'range',
         filterFn: 'between',
+        aggregationFn: 'mean',
+          AggregatedCell: ({ cell, table }) => (
+            <>
+              <Box>
+              Average by{' '}
+              {table.getColumn(cell.row.groupingColumnId ?? '').columnDef.header}:{' '}
+                {Math.round(cell.getValue())?.toLocaleString()}
+              </Box>
+            </>
+          ),
+          Cell: ({ cell }) => (
+            <strong>
+              {cell.getValue()?.toLocaleString()}
+            </strong>
+          ),
+        Footer: () => (
+          <Stack>
+            <Box sx={{ fontWeight: 'bold' }}>
+            Average by All:{' '}
+              {Math.round(statAverageDefense).toLocaleString()}
+            </Box>
+          </Stack>
+        ),
           },
           {
             accessorKey: "combat_res",
@@ -299,6 +373,29 @@ export default function TableFull ({operatorsListMain}) {
             enableColumnDragging: true,
             filterVariant: 'range',
         filterFn: 'between',
+        aggregationFn: 'mean',
+          AggregatedCell: ({ cell, table }) => (
+            <>
+              <Box>
+              Average by{' '}
+              {table.getColumn(cell.row.groupingColumnId ?? '').columnDef.header}:{' '}
+                {Math.round(cell.getValue())?.toLocaleString()}
+              </Box>
+            </>
+          ),
+          Cell: ({ cell }) => (
+            <strong>
+              {cell.getValue()?.toLocaleString()}
+            </strong>
+          ),
+        Footer: () => (
+          <Stack>
+            <Box sx={{ fontWeight: 'bold' }}>
+            Average by All:{' '}
+              {Math.round(statAverageResistance).toLocaleString()}
+            </Box>
+          </Stack>
+        ),
           },
           {
             accessorKey: "combat_cldn",
@@ -308,6 +405,29 @@ export default function TableFull ({operatorsListMain}) {
             enableColumnDragging: true,
             filterVariant: 'range',
         filterFn: 'between',
+        aggregationFn: 'mean',
+          AggregatedCell: ({ cell, table }) => (
+            <>
+              <Box>
+              Average by{' '}
+              {table.getColumn(cell.row.groupingColumnId ?? '').columnDef.header}:{' '}
+                {Math.round(cell.getValue())?.toLocaleString()}
+              </Box>
+            </>
+          ),
+          Cell: ({ cell }) => (
+            <strong>
+              {cell.getValue()?.toLocaleString()}
+            </strong>
+          ),
+        Footer: () => (
+          <Stack>
+            <Box sx={{ fontWeight: 'bold' }}>
+            Average by All:{' '}
+              {Math.round(statAverageCooldown).toLocaleString()}
+            </Box>
+          </Stack>
+        ),
           },
           {
             accessorKey: "combat_cost",
@@ -317,6 +437,29 @@ export default function TableFull ({operatorsListMain}) {
             enableColumnDragging: true,
             filterVariant: 'range',
         filterFn: 'between',
+        aggregationFn: 'mean',
+          AggregatedCell: ({ cell, table }) => (
+            <>
+              <Box>
+              Average by{' '}
+              {table.getColumn(cell.row.groupingColumnId ?? '').columnDef.header}:{' '}
+                {Math.round(cell.getValue())?.toLocaleString()}
+              </Box>
+            </>
+          ),
+          Cell: ({ cell }) => (
+            <strong>
+              {cell.getValue()?.toLocaleString()}
+            </strong>
+          ),
+        Footer: () => (
+          <Stack>
+            <Box sx={{ fontWeight: 'bold' }}>
+            Average by All:{' '}
+              {Math.round(statAverageCost).toLocaleString()}
+            </Box>
+          </Stack>
+        ),
           },
           {
             accessorKey: "combat_blk",
@@ -326,6 +469,29 @@ export default function TableFull ({operatorsListMain}) {
             enableColumnDragging: true,
             filterVariant: 'range',
         filterFn: 'between',
+        aggregationFn: 'mean',
+          AggregatedCell: ({ cell, table }) => (
+            <>
+              <Box>
+              Average by{' '}
+              {table.getColumn(cell.row.groupingColumnId ?? '').columnDef.header}:{' '}
+                {Math.round(cell.getValue())?.toLocaleString()}
+              </Box>
+            </>
+          ),
+          Cell: ({ cell }) => (
+            <strong>
+              {cell.getValue()?.toLocaleString()}
+            </strong>
+          ),
+        Footer: () => (
+          <Stack>
+            <Box sx={{ fontWeight: 'bold' }}>
+            Average by All:{' '}
+              {Math.round(statAverageBlock).toLocaleString()}
+            </Box>
+          </Stack>
+        ),
           },
           {
             accessorKey: "combat_atkspd",
@@ -335,6 +501,29 @@ export default function TableFull ({operatorsListMain}) {
             enableColumnDragging: true,
             filterVariant: 'range',
         filterFn: 'between',
+        aggregationFn: 'mean',
+          AggregatedCell: ({ cell, table }) => (
+            <>
+              <Box>
+              Average by{' '}
+              {table.getColumn(cell.row.groupingColumnId ?? '').columnDef.header}:{' '}
+                {Math.round(cell.getValue())?.toLocaleString()}
+              </Box>
+            </>
+          ),
+          Cell: ({ cell }) => (
+            <strong>
+              {cell.getValue()?.toLocaleString()}
+            </strong>
+          ),
+        Footer: () => (
+          <Stack>
+            <Box sx={{ fontWeight: 'bold' }}>
+            Average by All:{' '}
+              {Math.round(statAverageSpeed).toLocaleString()}
+            </Box>
+          </Stack>
+        ),
           },
         ]
       }

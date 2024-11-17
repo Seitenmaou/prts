@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import './operatorDetails.css'
 import Plot from 'react-plotly.js';
 import Select from 'react-select'
@@ -8,6 +8,7 @@ import CompareStats from '../components/compare'
 export default function OperatorDetails (operatorsData) {
   const [operatorsList, setOperatorsList] = useState(operatorsData?.operatorsData || [] );
   const { operatorId } = useParams();
+  const navigate = useNavigate()
 
     const operatorOptions = operatorsList.map(operator => ({
         value: operator.ID,
@@ -18,6 +19,9 @@ export default function OperatorDetails (operatorsData) {
     const handleComparison = (selectedOption) => {
         setCompareId(selectedOption.value);
     };
+    const handleOperatorChange = (selectedOption) => {
+        navigate(`../${selectedOption.value}`)
+    }
     const removeCompare = () => setCompareId(null)
 
     const [showAverage, setShowAverage] = useState(false)
@@ -297,7 +301,7 @@ export default function OperatorDetails (operatorsData) {
                         'Strength'
                     ],
                     // fill: 'toself',
-                    name: operatorsList[operatorId].name_code
+                    name: operatorsList[compareId].name_code
                     }
             )
         }   
@@ -396,6 +400,7 @@ export default function OperatorDetails (operatorsData) {
             </div>
         </div>
         <div id='compareableDetails'>
+        <Select options={operatorOptions} onChange={handleOperatorChange}/>
             <div id='statusGraph'>
                 <Plot data={statsData} layout={statsLayout} />
             </div>
