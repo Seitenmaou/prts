@@ -1,23 +1,334 @@
-import logo from './logo.svg';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+} from 'react-router-dom';
 import './App.css';
+import Dashboard from './pages/Dashboard';
+import Login from './pages/Login';
+import OperatorTable from './pages/OperatorTable';
+import OperatorSunburst from './pages/OperatorSunburst';
+import OperatorStats from './pages/OperatorStats';
+import OperatorScatter from './pages/OperatorScatter';
+import OperatorTimeline from './pages/OperatorTimeline';
+
+const OPERATOR_API_URL = 'https://script.google.com/macros/s/AKfycbxNVDGS6t7iJUc-5hnx0pze678LQ6B5pVeUeoSmd1WJ4-9PIV1F0d2qobTtQXkAsujM/exec';
+const SESSION_STORAGE_KEY = 'prts-session';
+const SESSION_DURATION_MS = 4 * 60 * 60 * 1000;
+
+const readPersistedSession = () => {
+  if (typeof window === 'undefined') {
+    return null;
+  }
+
+  try {
+    const raw = window.localStorage.getItem(SESSION_STORAGE_KEY);
+    if (!raw) {
+      return null;
+    }
+
+    const parsed = JSON.parse(raw);
+    if (
+      !parsed
+      || typeof parsed.userType !== 'string'
+      || typeof parsed.expiresAt !== 'number'
+    ) {
+      window.localStorage.removeItem(SESSION_STORAGE_KEY);
+      return null;
+    }
+
+    if (Date.now() >= parsed.expiresAt) {
+      window.localStorage.removeItem(SESSION_STORAGE_KEY);
+      return null;
+    }
+
+    return parsed;
+  } catch (error) {
+    // Clear unreadable session payloads to avoid repeated failures.
+    window.localStorage.removeItem(SESSION_STORAGE_KEY);
+    return null;
+  }
+};
+
+const persistSession = (userType, expiresAt) => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    window.localStorage.setItem(
+      SESSION_STORAGE_KEY,
+      JSON.stringify({ userType, expiresAt }),
+    );
+  } catch (error) {
+    // Ignore storage failures (e.g., quota or privacy mode).
+  }
+};
+
+const clearPersistedSession = () => {
+  if (typeof window === 'undefined') {
+    return;
+  }
+
+  try {
+    window.localStorage.removeItem(SESSION_STORAGE_KEY);
+  } catch (error) {
+    // Ignore storage failures.
+  }
+};
+
+const transformOperatorPayload = (payload) => {
+  if (!Array.isArray(payload) || payload.length === 0) {
+    return [];
+  }
+
+  const [firstEntry] = payload;
+
+  if (Array.isArray(firstEntry)) {
+    const [header, ...rows] = payload;
+    if (!Array.isArray(header)) {
+      return [];
+    }
+
+    return rows.map((row) => {
+      const entry = {};
+      header.forEach((key, index) => {
+        if (!key) {
+          return;
+        }
+        entry[key] = row[index];
+      });
+      return entry;
+    });
+  }
+
+  return payload.map((item) => {
+    if (item && typeof item === 'object') {
+      return item;
+    }
+    return { value: item };
+  });
+};
 
 function App() {
+  const [session, setSession] = useState({
+    isAuthenticated: false,
+    userType: null,
+    expiresAt: null,
+  });
+  const [operatorStatus, setOperatorStatus] = useState({
+    state: 'idle',
+    error: null,
+  });
+  const [operatorData, setOperatorData] = useState([]);
+
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const canAccessOperators = useMemo(
+    () => ['admin', 'welcomefrompriestess', 'welcomefromcivilight'].includes(session.userType),
+    [session.userType],
+  );
+
+  const handleReset = useCallback(() => {
+    clearPersistedSession();
+    setSession({ isAuthenticated: false, userType: null, expiresAt: null });
+    setOperatorStatus({ state: 'idle', error: null });
+    setOperatorData([]);
+  }, []);
+
+  const handleAuthenticated = useCallback((userType) => {
+    const expiresAt = Date.now() + SESSION_DURATION_MS;
+    setSession({ isAuthenticated: true, userType, expiresAt });
+    persistSession(userType, expiresAt);
+    setOperatorStatus({ state: 'idle', error: null });
+    setOperatorData([]);
+  }, []);
+
+  useEffect(() => {
+    const persisted = readPersistedSession();
+    if (persisted) {
+      setSession({ isAuthenticated: true, userType: persisted.userType, expiresAt: persisted.expiresAt });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (session.isAuthenticated) {
+      if (location.pathname === '/') {
+        navigate('/dashboard', { replace: true });
+      }
+    } else if (location.pathname !== '/') {
+      navigate('/', { replace: true });
+    }
+  }, [session.isAuthenticated, location.pathname, navigate]);
+
+  useEffect(() => {
+    if (!session.isAuthenticated || !session.expiresAt) {
+      return undefined;
+    }
+
+    const remaining = session.expiresAt - Date.now();
+    if (remaining <= 0) {
+      handleReset();
+      return undefined;
+    }
+
+    const timeoutId = setTimeout(() => {
+      handleReset();
+    }, remaining);
+
+    return () => {
+      clearTimeout(timeoutId);
+    };
+    // handleReset intentionally included to ensure the latest reset logic is used.
+  }, [session.isAuthenticated, session.expiresAt, handleReset]);
+
+  useEffect(() => {
+    if (!session.isAuthenticated) {
+      return;
+    }
+
+    let isMounted = true;
+    const controller = new AbortController();
+
+    const loadOperators = async () => {
+      setOperatorStatus({ state: 'loading', error: null });
+      try {
+        const response = await fetch(OPERATOR_API_URL, {
+          signal: controller.signal,
+        });
+        if (!response.ok) {
+          throw new Error(`Request failed :: ${response.status}`);
+        }
+        const payload = await response.json();
+        if (!isMounted) {
+          return;
+        }
+        setOperatorData(transformOperatorPayload(payload));
+        setOperatorStatus({ state: 'loaded', error: null });
+      } catch (error) {
+        if (!isMounted || error.name === 'AbortError') {
+          return;
+        }
+        setOperatorStatus({
+          state: 'error',
+          error: error.message || 'Unable to retrieve operator records.',
+        });
+      }
+    };
+
+    loadOperators();
+
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
+  }, [session.isAuthenticated]);
+
+  const operatorMeta = useMemo(() => ({
+    status: operatorStatus,
+    data: operatorData,
+    rows: operatorData.length,
+  }), [operatorStatus, operatorData]);
+
+  if (!session.isAuthenticated) {
+    return (
+      <div className="app-root">
+        <Login onAuthenticated={handleAuthenticated} />
+      </div>
+    );
+  }
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div className="app-root">
+      <Routes>
+        <Route
+          path="/dashboard"
+          element={(
+            <Dashboard
+              userType={session.userType}
+              onReset={handleReset}
+              onOpenOperatorTable={() => navigate('/operator-table')}
+              onOpenOperatorStats={() => navigate('/operator-stats')}
+              operatorStatus={operatorMeta}
+              showOperatorStats={canAccessOperators}
+              showOperatorAccess={canAccessOperators}
+            />
+          )}
+        />
+        <Route
+          path="/operator-table"
+          element={
+            canAccessOperators ? (
+              <OperatorTable
+                operatorStatus={operatorMeta}
+                onBack={() => navigate('/dashboard')}
+              />
+            ) : (
+              <Navigate to="/dashboard" replace />
+            )
+          }
+        />
+        <Route
+          path="/operator-stats"
+          element={
+            canAccessOperators ? (
+              <OperatorStats
+                operatorStatus={operatorMeta}
+                onBack={() => navigate('/dashboard')}
+                onOpenSunburst={() => navigate('/operator-stats/sunburst')}
+                onOpenScatter={() => navigate('/operator-stats/scatter')}
+                onOpenTimeline={() => navigate('/operator-stats/timeline')}
+              />
+            ) : (
+              <Navigate to="/dashboard" replace />
+            )
+          }
+        />
+        <Route
+          path="/operator-stats/sunburst"
+          element={
+            canAccessOperators ? (
+              <OperatorSunburst
+                operatorStatus={operatorMeta}
+                onBack={() => navigate('/operator-stats')}
+              />
+            ) : (
+              <Navigate to="/dashboard" replace />
+            )
+          }
+        />
+        <Route
+          path="/operator-stats/timeline"
+          element={
+            canAccessOperators ? (
+              <OperatorTimeline
+                operatorStatus={operatorMeta}
+                onBack={() => navigate('/operator-stats')}
+              />
+            ) : (
+              <Navigate to="/dashboard" replace />
+            )
+          }
+        />
+        <Route
+          path="/operator-stats/scatter"
+          element={
+            canAccessOperators ? (
+              <OperatorScatter
+                operatorStatus={operatorMeta}
+                onBack={() => navigate('/operator-stats')}
+              />
+            ) : (
+              <Navigate to="/dashboard" replace />
+            )
+          }
+        />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
     </div>
   );
 }
