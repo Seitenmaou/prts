@@ -5,6 +5,11 @@ import {
   useState,
 } from 'react';
 import Plotly from 'plotly.js-dist';
+import {
+  GRAPH_AXIS_LINE_COLOR,
+  GRAPH_TEXT_COLOR,
+  SCATTER_COLORWAY,
+} from '../constants/colorPalettes';
 
 const METRIC_OPTIONS = [
   { key: 'combat_hp', label: 'combat_hp' },
@@ -25,16 +30,7 @@ const MEDICAL_METRICS = [
 const MEDICAL_X_METRIC = MEDICAL_METRICS[0];
 const MEDICAL_Y_METRIC = MEDICAL_METRICS[1];
 const collator = new Intl.Collator('en', { numeric: true, sensitivity: 'base' });
-const CLASS_PALETTE = [
-  '#9AFF9A', // Phosphor Green
-  '#8DF6E8', // Console Cyan
-  '#8DA2FF', // Misty Blue
-  '#C6A4FF', // Violet Phosphor
-  '#F2A5D6', // Soft Magenta
-  '#FFD38A', // Amber Glow
-  '#DAFF9E', // Terminal Lime
-  '#76D9C5', // Dusty Teal
-];
+const CLASS_PALETTE = SCATTER_COLORWAY;
 
 const sanitizeLabel = (value, fallback) => {
   if (typeof value === 'string') {
@@ -339,15 +335,15 @@ const OperatorScatter = ({ operatorStatus, onBack }) => {
         plot_bgcolor: 'rgba(0,0,0,0)',
         font: {
           family: 'Courier New, monospace',
-          color: '#C5F5CC',
+          color: GRAPH_TEXT_COLOR,
         },
         margin: { t: 48, l: 64, r: 140, b: 64 },
         xaxis: {
           title: MEDICAL_X_METRIC.label,
           gridcolor: 'rgba(77, 255, 167, 0.12)',
-          zerolinecolor: 'rgba(77, 255, 167, 0.18)',
-          tickfont: { size: 12 },
-          titlefont: { size: 13 },
+          zerolinecolor: GRAPH_AXIS_LINE_COLOR,
+          tickfont: { size: 12, color: GRAPH_TEXT_COLOR },
+          titlefont: { size: 13, color: GRAPH_TEXT_COLOR },
           range: [
             Number.isFinite(medicalXMin) ? medicalXMin : null,
             Number.isFinite(medicalXMax) ? medicalXMax : null,
@@ -356,9 +352,9 @@ const OperatorScatter = ({ operatorStatus, onBack }) => {
         yaxis: {
           title: MEDICAL_Y_METRIC.label,
           gridcolor: 'rgba(77, 255, 167, 0.12)',
-          zerolinecolor: 'rgba(77, 255, 167, 0.18)',
-          tickfont: { size: 12 },
-          titlefont: { size: 13 },
+          zerolinecolor: GRAPH_AXIS_LINE_COLOR,
+          tickfont: { size: 12, color: GRAPH_TEXT_COLOR },
+          titlefont: { size: 13, color: GRAPH_TEXT_COLOR },
           range: [
             Number.isFinite(medicalYMin) ? medicalYMin : null,
             Number.isFinite(medicalYMax) ? medicalYMax : null,
@@ -375,6 +371,7 @@ const OperatorScatter = ({ operatorStatus, onBack }) => {
           borderwidth: 1,
           font: {
             size: 11,
+            color: GRAPH_TEXT_COLOR,
           },
         },
       };
@@ -481,7 +478,7 @@ const OperatorScatter = ({ operatorStatus, onBack }) => {
         paper_bgcolor: 'rgba(0,0,0,0)',
         font: {
           family: 'Courier New, monospace',
-          color: '#C5F5CC',
+          color: GRAPH_TEXT_COLOR,
         },
         margin: { t: 48, l: 0, r: 140, b: 0 },
         scene: {
@@ -489,9 +486,9 @@ const OperatorScatter = ({ operatorStatus, onBack }) => {
           xaxis: {
             title: xMetric.label,
             gridcolor: 'rgba(77, 255, 167, 0.12)',
-            zerolinecolor: 'rgba(77, 255, 167, 0.18)',
-            tickfont: { size: 11 },
-            titlefont: { size: 12 },
+            zerolinecolor: GRAPH_AXIS_LINE_COLOR,
+            tickfont: { size: 11, color: GRAPH_TEXT_COLOR },
+            titlefont: { size: 12, color: GRAPH_TEXT_COLOR },
             range: [
               Number.isFinite(metricExtents[xMetric.key]?.min) ? metricExtents[xMetric.key].min : null,
               Number.isFinite(metricExtents[xMetric.key]?.max) ? metricExtents[xMetric.key].max : null,
@@ -500,9 +497,9 @@ const OperatorScatter = ({ operatorStatus, onBack }) => {
           yaxis: {
             title: yMetric.label,
             gridcolor: 'rgba(77, 255, 167, 0.12)',
-            zerolinecolor: 'rgba(77, 255, 167, 0.18)',
-            tickfont: { size: 11 },
-            titlefont: { size: 12 },
+            zerolinecolor: GRAPH_AXIS_LINE_COLOR,
+            tickfont: { size: 11, color: GRAPH_TEXT_COLOR },
+            titlefont: { size: 12, color: GRAPH_TEXT_COLOR },
             range: [
               Number.isFinite(metricExtents[yMetric.key]?.min) ? metricExtents[yMetric.key].min : null,
               Number.isFinite(metricExtents[yMetric.key]?.max) ? metricExtents[yMetric.key].max : null,
@@ -511,9 +508,9 @@ const OperatorScatter = ({ operatorStatus, onBack }) => {
           zaxis: {
             title: zMetric.label,
             gridcolor: 'rgba(77, 255, 167, 0.12)',
-            zerolinecolor: 'rgba(77, 255, 167, 0.18)',
-            tickfont: { size: 11 },
-            titlefont: { size: 12 },
+            zerolinecolor: GRAPH_AXIS_LINE_COLOR,
+            tickfont: { size: 11, color: GRAPH_TEXT_COLOR },
+            titlefont: { size: 12, color: GRAPH_TEXT_COLOR },
             range: [
               Number.isFinite(metricExtents[zMetric.key]?.min) ? metricExtents[zMetric.key].min : null,
               Number.isFinite(metricExtents[zMetric.key]?.max) ? metricExtents[zMetric.key].max : null,
@@ -532,6 +529,7 @@ const OperatorScatter = ({ operatorStatus, onBack }) => {
           borderwidth: 1,
           font: {
             size: 11,
+            color: GRAPH_TEXT_COLOR,
           },
         },
       };
@@ -576,15 +574,15 @@ const OperatorScatter = ({ operatorStatus, onBack }) => {
       plot_bgcolor: 'rgba(0,0,0,0)',
       font: {
         family: 'Courier New, monospace',
-        color: '#C5F5CC',
+        color: GRAPH_TEXT_COLOR,
       },
       margin: { t: 48, l: 64, r: 140, b: 64 },
       xaxis: {
         title: xMetric.label,
         gridcolor: 'rgba(77, 255, 167, 0.12)',
-        zerolinecolor: 'rgba(77, 255, 167, 0.18)',
-        tickfont: { size: 12 },
-        titlefont: { size: 13 },
+        zerolinecolor: GRAPH_AXIS_LINE_COLOR,
+        tickfont: { size: 12, color: GRAPH_TEXT_COLOR },
+        titlefont: { size: 13, color: GRAPH_TEXT_COLOR },
         range: [
           Number.isFinite(metricExtents[xMetric.key]?.min) ? metricExtents[xMetric.key].min : null,
           Number.isFinite(metricExtents[xMetric.key]?.max) ? metricExtents[xMetric.key].max : null,
@@ -593,9 +591,9 @@ const OperatorScatter = ({ operatorStatus, onBack }) => {
       yaxis: {
         title: yMetric.label,
         gridcolor: 'rgba(77, 255, 167, 0.12)',
-        zerolinecolor: 'rgba(77, 255, 167, 0.18)',
-        tickfont: { size: 12 },
-        titlefont: { size: 13 },
+        zerolinecolor: GRAPH_AXIS_LINE_COLOR,
+        tickfont: { size: 12, color: GRAPH_TEXT_COLOR },
+        titlefont: { size: 13, color: GRAPH_TEXT_COLOR },
         range: [
           Number.isFinite(metricExtents[yMetric.key]?.min) ? metricExtents[yMetric.key].min : null,
           Number.isFinite(metricExtents[yMetric.key]?.max) ? metricExtents[yMetric.key].max : null,
@@ -612,6 +610,7 @@ const OperatorScatter = ({ operatorStatus, onBack }) => {
         borderwidth: 1,
         font: {
           size: 11,
+          color: GRAPH_TEXT_COLOR,
         },
       },
     };

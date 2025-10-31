@@ -4,6 +4,12 @@ import {
   useState,
 } from 'react';
 import OperatorDataTable from '../components/OperatorDataTable';
+import OperatorRankingSummary from '../components/OperatorRankingSummary';
+import {
+  formatRoundedNumber,
+  parseMaybeNumber,
+  parseStatValue,
+} from '../utils/numberFormat';
 
 const MEDICAL_COLUMNS = [
   { key: 'ID', label: 'ID', sortable: true },
@@ -49,18 +55,47 @@ const TAB_DEFINITIONS = [
   {
     key: 'medical',
     label: 'medical file',
+    mode: 'table',
     columns: MEDICAL_COLUMNS,
   },
   {
     key: 'combat',
     label: 'combat file',
+    mode: 'table',
     columns: COMBAT_COLUMNS,
+  },
+  {
+    key: 'rankingSummary',
+    label: 'ranking summary',
+    mode: 'summary',
+    columns: [],
   },
 ];
 
 const EMPTY_ARRAY = [];
 const collator = new Intl.Collator('en', { numeric: true, sensitivity: 'base' });
 const SEARCH_FIELDS = ['name_code', 'code', 'name_real'];
+
+const SKILL_LEVELS = ['Flawed', 'Normal', 'Standard', 'Excellent', 'Outstanding', 'REDACTED'];
+const SKILL_VALUE_MAP = SKILL_LEVELS.reduce((accumulator, level, index) => {
+  accumulator[level.toLowerCase()] = index;
+  return accumulator;
+}, {});
+const SKILL_FIELDS = [
+  'skills_strength',
+  'skills_mobility',
+  'skills_endurance',
+  'skills_tacticalAcumen',
+  'skills_combat',
+  'skills_artsAdaptability',
+];
+
+const getOperatorName = (record) => (
+  record?.name_code
+  ?? record?.code
+  ?? record?.name_real
+  ?? 'Unknown Operator'
+);
 
 const mapValueToFilterToken = (value) => {
   if (value === null || value === undefined || value === '') {
@@ -69,21 +104,205 @@ const mapValueToFilterToken = (value) => {
   return String(value);
 };
 
-const parseMaybeNumber = (value) => {
-  if (typeof value === 'number' && Number.isFinite(value)) {
-    return value;
+const replaceFirstNumericSegment = (rawValue, replacement) => {
+  if (typeof rawValue !== 'string' || rawValue.trim() === '') {
+    return replacement;
   }
-  if (typeof value === 'string') {
-    const trimmed = value.trim();
-    if (trimmed === '') {
-      return null;
-    }
-    const parsed = Number(trimmed);
-    if (!Number.isNaN(parsed)) {
-      return parsed;
-    }
+
+  const match = rawValue.match(/[+-]?\d[\d,]*(?:\.\d+)?/);
+  if (!match) {
+    return replacement;
   }
-  return null;
+
+  return rawValue.replace(match[0], replacement);
+};
+
+const formatStatDisplay = (rawValue, numericValue, { unitLabel } = {}) => {
+  if (numericValue === null || Number.isNaN(numericValue)) {
+    if (rawValue === null || rawValue === undefined || rawValue === '') {
+      return '—';
+    }
+    return String(rawValue);
+  }
+
+  const formattedNumeric = formatRoundedNumber(numericValue, {
+    useGrouping: typeof rawValue === 'string' ? rawValue.includes(',') : false,
+  }) ?? numericValue.toString();
+
+  if (unitLabel) {
+    return `${formattedNumeric} ${unitLabel}`.trim();
+  }
+
+  if (typeof rawValue === 'string' && rawValue.trim() !== '') {
+    return replaceFirstNumericSegment(rawValue, formattedNumeric);
+  }
+
+  return formattedNumeric;
+};
+
+const parseSkillRating = (rawValue) => {
+  if (rawValue === null || rawValue === undefined) {
+    return 0;
+  }
+
+  const segments = String(rawValue).split('/');
+  let best = 0;
+
+  segments.forEach((segment) => {
+    const token = segment.trim().toLowerCase();
+    if (!token) {
+      return;
+    }
+    const mapped = SKILL_VALUE_MAP[token];
+    if (typeof mapped === 'number') {
+      best = Math.max(best, mapped);
+    }
+  });
+
+  return best;
+};
+
+const computeSkillScore = (record) => (
+  SKILL_FIELDS.reduce((total, field) => total + parseSkillRating(record?.[field]), 0)
+);
+
+const buildTopListByField = (records, fieldKey, { unitLabel } = {}) => {
+  const entries = [];
+
+  records.forEach((record) => {
+    if (!record) {
+      return;
+    }
+
+    const rawValue = record[fieldKey];
+    const numericValue = parseStatValue(rawValue);
+
+    if (numericValue === null) {
+      return;
+    }
+
+    const displayValue = formatStatDisplay(rawValue, numericValue, { unitLabel });
+
+    entries.push({
+      label: getOperatorName(record),
+      value: displayValue,
+      numericValue,
+    });
+  });
+
+  entries.sort((left, right) => {
+    if (right.numericValue !== left.numericValue) {
+      return right.numericValue - left.numericValue;
+    }
+    return collator.compare(left.label, right.label);
+  });
+
+  return entries.slice(0, 5).map(({ label, value }) => ({ label, value }));
+};
+
+const buildMostPopularClasses = (records) => {
+  const counts = new Map();
+
+  records.forEach((record) => {
+    const raw = record?.operatorRecords_class;
+    if (!raw) {
+      return;
+    }
+    const label = String(raw).trim();
+    if (!label) {
+      return;
+    }
+    counts.set(label, (counts.get(label) ?? 0) + 1);
+  });
+
+  const entries = Array.from(counts.entries()).map(([label, count]) => ({
+    label,
+    value: `${count.toLocaleString()} ${count === 1 ? 'operator' : 'operators'}`,
+    numericValue: count,
+  }));
+
+  entries.sort((left, right) => {
+    if (right.numericValue !== left.numericValue) {
+      return right.numericValue - left.numericValue;
+    }
+    return collator.compare(left.label, right.label);
+  });
+
+  return entries.slice(0, 5).map(({ label, value }) => ({ label, value }));
+};
+
+const buildMostSkilledOperators = (records) => {
+  const entries = records.map((record) => {
+    const score = computeSkillScore(record);
+    return {
+      label: getOperatorName(record),
+      value: `${score.toLocaleString()} pts`,
+      numericValue: score,
+    };
+  }).sort((left, right) => {
+    if (right.numericValue !== left.numericValue) {
+      return right.numericValue - left.numericValue;
+    }
+    return collator.compare(left.label, right.label);
+  });
+
+  return entries.slice(0, 5).map(({ label, value }) => ({ label, value }));
+};
+
+const buildRankingSections = (records) => {
+  if (!Array.isArray(records) || records.length === 0) {
+    return EMPTY_ARRAY;
+  }
+
+  const normalizedRecords = records.filter((record) => record && typeof record === 'object');
+  if (!normalizedRecords.length) {
+    return EMPTY_ARRAY;
+  }
+
+  const sections = [
+    {
+      key: 'highestHp',
+      title: 'highest hp',
+      items: buildTopListByField(normalizedRecords, 'combat_hp'),
+    },
+    {
+      key: 'highestAtk',
+      title: 'highest atk',
+      items: buildTopListByField(normalizedRecords, 'combat_atk'),
+    },
+    {
+      key: 'highestDef',
+      title: 'highest def',
+      items: buildTopListByField(normalizedRecords, 'combat_def'),
+    },
+    {
+      key: 'highestRes',
+      title: 'highest res',
+      items: buildTopListByField(normalizedRecords, 'combat_res'),
+    },
+    {
+      key: 'fastestAtk',
+      title: 'fastest attacker',
+      items: buildTopListByField(normalizedRecords, 'combat_atkspd'),
+    },
+    {
+      key: 'tallest',
+      title: 'tallest operator',
+      items: buildTopListByField(normalizedRecords, 'height'),
+    },
+    {
+      key: 'popularClass',
+      title: 'most popular class',
+      items: buildMostPopularClasses(normalizedRecords),
+    },
+    {
+      key: 'mostSkilled',
+      title: 'most skilled',
+      items: buildMostSkilledOperators(normalizedRecords),
+    },
+  ];
+
+  return sections.filter((section) => section.items.length > 0);
 };
 
 const OperatorTable = ({ operatorStatus, onBack }) => {
@@ -100,9 +319,11 @@ const OperatorTable = ({ operatorStatus, onBack }) => {
     [activeTab],
   );
 
+  const isSummaryTab = activeTabDefinition.mode === 'summary';
+
   const filterableColumns = useMemo(
-    () => activeTabDefinition.columns.filter((column) => column.filterable),
-    [activeTabDefinition],
+    () => (isSummaryTab ? EMPTY_ARRAY : activeTabDefinition.columns.filter((column) => column.filterable)),
+    [activeTabDefinition, isSummaryTab],
   );
 
   useEffect(() => {
@@ -121,10 +342,15 @@ const OperatorTable = ({ operatorStatus, onBack }) => {
       return next;
     });
 
-    setSortTrail((prev) => prev.filter((entry) => (
-      activeTabDefinition.columns.some((column) => column.key === entry.columnKey)
-    )));
-  }, [activeTabDefinition, filterableColumns]);
+    setSortTrail((prev) => {
+      if (isSummaryTab) {
+        return EMPTY_ARRAY;
+      }
+      return prev.filter((entry) => (
+        activeTabDefinition.columns.some((column) => column.key === entry.columnKey)
+      ));
+    });
+  }, [activeTabDefinition, filterableColumns, isSummaryTab]);
 
   const hasRecords = status.state === 'loaded' && records.length > 0;
   const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -193,7 +419,7 @@ const OperatorTable = ({ operatorStatus, onBack }) => {
   }, [searchFilteredRecords, activeFilters, hasRecords]);
 
   const sortedRecords = useMemo(() => {
-    if (!filteredRecords.length) {
+    if (isSummaryTab || !filteredRecords.length) {
       return filteredRecords;
     }
 
@@ -235,7 +461,12 @@ const OperatorTable = ({ operatorStatus, onBack }) => {
       return 0;
     });
     return sorted;
-  }, [filteredRecords, sortTrail, activeTabDefinition]);
+  }, [filteredRecords, sortTrail, activeTabDefinition, isSummaryTab]);
+
+  const rankingSections = useMemo(
+    () => (isSummaryTab ? buildRankingSections(records) : EMPTY_ARRAY),
+    [isSummaryTab, records],
+  );
 
   const handleTabChange = (tabKey) => {
     setActiveTab(tabKey);
@@ -284,7 +515,7 @@ const OperatorTable = ({ operatorStatus, onBack }) => {
   };
 
   const activeSort = sortTrail[0] ?? null;
-  const activeSortLabel = activeSort
+  const activeSortLabel = (!isSummaryTab && activeSort)
     ? (activeTabDefinition.columns.find((column) => column.key === activeSort.columnKey)?.label
       ?? activeSort.columnKey)
     : null;
@@ -332,102 +563,117 @@ const OperatorTable = ({ operatorStatus, onBack }) => {
                       onClick={() => handleTabChange(tab.key)}
                     >
                       <span className="operator-tab__label">{tab.label}</span>
-                      <span className="operator-tab__meta">{tab.columns.length} fields</span>
+                      <span className="operator-tab__meta">
+                        {tab.mode === 'table' ? `${tab.columns.length} fields` : 'insights'}
+                      </span>
                     </button>
                   );
                 })}
               </div>
-              <div className="operator-controls">
-                <div className="operator-search">
-                  <input
-                    type="search"
-                    placeholder="search name, code, or alias"
-                    value={searchQuery}
-                    onChange={(event) => setSearchQuery(event.target.value)}
-                  />
-                </div>
-                {filterableColumns.length > 0 && (
-                  <div className="operator-filter-trigger">
-                    <button
-                      type="button"
-                      className={`operator-filter-button${filtersOpen ? ' operator-filter-button--active' : ''}`}
-                      onClick={() => setFiltersOpen((prev) => !prev)}
-                      aria-expanded={filtersOpen}
-                    >
-                      filters
-                      {activeFilterCount > 0 && (
-                        <span className="operator-filter-badge">{activeFilterCount}</span>
-                      )}
-                    </button>
-                    {filtersOpen && (
-                      <div className="operator-filter-popover">
-                        <div className="operator-filter-popover__header">
-                          <span>filter manifest</span>
-                          <button
-                            type="button"
-                            className="operator-filter-clear"
-                            onClick={handleClearFilters}
-                            disabled={Object.keys(activeFilters).length === 0}
-                          >
-                            clear
-                          </button>
-                        </div>
-                        <div className="operator-filter-groups">
-                          {filterableColumns.map((column) => {
-                            const options = filterOptions[column.key] ?? [];
-                            if (!options.length) {
-                              return null;
-                            }
-                            const selected = new Set(activeFilters[column.key] ?? EMPTY_ARRAY);
-                            return (
-                              <details key={column.key} className="operator-filter-group">
-                                <summary>
-                                  {column.label}
-                                  {selected.size > 0 && (
-                                    <span className="operator-filter-chip">
-                                      {selected.size}
-                                      {' '}
-                                      active
-                                    </span>
-                                  )}
-                                </summary>
-                                <div className="operator-filter-options">
-                                  {options.map((option) => (
-                                    <label
-                                      key={`${column.key}-${option}`}
-                                      className="operator-filter-option"
-                                    >
-                                      <input
-                                        type="checkbox"
-                                        checked={selected.has(option)}
-                                        onChange={() => handleFilterToggle(column.key, option)}
-                                      />
-                                      <span>{option}</span>
-                                    </label>
-                                  ))}
-                                </div>
-                              </details>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
+              {!isSummaryTab && (
+                <div className="operator-controls">
+                  <div className="operator-search">
+                    <input
+                      type="search"
+                      placeholder="search name, code, or alias"
+                      value={searchQuery}
+                      onChange={(event) => setSearchQuery(event.target.value)}
+                    />
                   </div>
-                )}
-              </div>
-              {sortedRecords.length > 0 ? (
-                <OperatorDataTable
-                  columns={activeTabDefinition.columns}
-                  records={sortedRecords}
-                  sortTrail={sortTrail}
-                  onSortToggle={handleSortToggle}
-                />
-              ) : (
-                <div className="operator-placeholder operator-placeholder--empty">
-                  no matching entries
+                  {filterableColumns.length > 0 && (
+                    <div className="operator-filter-trigger">
+                      <button
+                        type="button"
+                        className={`operator-filter-button${filtersOpen ? ' operator-filter-button--active' : ''}`}
+                        onClick={() => setFiltersOpen((prev) => !prev)}
+                        aria-expanded={filtersOpen}
+                      >
+                        filters
+                        {activeFilterCount > 0 && (
+                          <span className="operator-filter-badge">{activeFilterCount}</span>
+                        )}
+                      </button>
+                      {filtersOpen && (
+                        <div className="operator-filter-popover">
+                          <div className="operator-filter-popover__header">
+                            <span>filter manifest</span>
+                            <button
+                              type="button"
+                              className="operator-filter-clear"
+                              onClick={handleClearFilters}
+                              disabled={Object.keys(activeFilters).length === 0}
+                            >
+                              clear
+                            </button>
+                          </div>
+                          <div className="operator-filter-groups">
+                            {filterableColumns.map((column) => {
+                              const options = filterOptions[column.key] ?? [];
+                              if (!options.length) {
+                                return null;
+                              }
+                              const selected = new Set(activeFilters[column.key] ?? EMPTY_ARRAY);
+                              return (
+                                <details key={column.key} className="operator-filter-group">
+                                  <summary>
+                                    {column.label}
+                                    {selected.size > 0 && (
+                                      <span className="operator-filter-chip">
+                                        {selected.size}
+                                        {' '}
+                                        active
+                                      </span>
+                                    )}
+                                  </summary>
+                                  <div className="operator-filter-options">
+                                    {options.map((option) => (
+                                      <label
+                                        key={`${column.key}-${option}`}
+                                        className="operator-filter-option"
+                                      >
+                                        <input
+                                          type="checkbox"
+                                          checked={selected.has(option)}
+                                          onChange={() => handleFilterToggle(column.key, option)}
+                                        />
+                                        <span>{option}</span>
+                                      </label>
+                                    ))}
+                                  </div>
+                                </details>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
-              {activeSort && (
+              {!isSummaryTab && (
+                sortedRecords.length > 0 ? (
+                  <OperatorDataTable
+                    columns={activeTabDefinition.columns}
+                    records={sortedRecords}
+                    sortTrail={sortTrail}
+                    onSortToggle={handleSortToggle}
+                  />
+                ) : (
+                  <div className="operator-placeholder operator-placeholder--empty">
+                    no matching entries
+                  </div>
+                )
+              )}
+              {isSummaryTab && (
+                rankingSections.length > 0 ? (
+                  <OperatorRankingSummary sections={rankingSections} />
+                ) : (
+                  <div className="operator-placeholder operator-placeholder--empty">
+                    insufficient data for rankings
+                  </div>
+                )
+              )}
+              {!isSummaryTab && activeSort && (
                 <div className="operator-sort-footnote">
                   sorting
                   {' '}

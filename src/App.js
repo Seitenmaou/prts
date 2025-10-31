@@ -6,6 +6,8 @@ import {
   useLocation,
   useNavigate,
 } from 'react-router-dom';
+import Particles, { initParticlesEngine } from '@tsparticles/react';
+import { loadLinksPreset } from '@tsparticles/preset-links';
 import './App.css';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
@@ -14,6 +16,8 @@ import OperatorSunburst from './pages/OperatorSunburst';
 import OperatorStats from './pages/OperatorStats';
 import OperatorScatter from './pages/OperatorScatter';
 import OperatorTimeline from './pages/OperatorTimeline';
+import OperatorEntry from './pages/OperatorEntry';
+import { isElevatedUserType } from './constants/userTypes';
 
 const OPERATOR_API_URL = 'https://script.google.com/macros/s/AKfycbxNVDGS6t7iJUc-5hnx0pze678LQ6B5pVeUeoSmd1WJ4-9PIV1F0d2qobTtQXkAsujM/exec';
 const SESSION_STORAGE_KEY = 'prts-session';
@@ -124,12 +128,13 @@ function App() {
     error: null,
   });
   const [operatorData, setOperatorData] = useState([]);
+  const [particlesReady, setParticlesReady] = useState(false);
 
   const navigate = useNavigate();
   const location = useLocation();
 
   const canAccessOperators = useMemo(
-    () => ['admin', 'welcomefrompriestess', 'welcomefromcivilight'].includes(session.userType),
+    () => isElevatedUserType(session.userType),
     [session.userType],
   );
 
@@ -146,6 +151,22 @@ function App() {
     persistSession(userType, expiresAt);
     setOperatorStatus({ state: 'idle', error: null });
     setOperatorData([]);
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    initParticlesEngine(async (engine) => {
+      await loadLinksPreset(engine);
+    }).then(() => {
+      if (isMounted) {
+        setParticlesReady(true);
+      }
+    });
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -233,18 +254,49 @@ function App() {
     data: operatorData,
     rows: operatorData.length,
   }), [operatorStatus, operatorData]);
+  const particlePalette = useMemo(() => {
+    const base = '#000000';
+    switch (session.userType) {
+      case 'admin':
+        return [base, base, base, '#ffd60a'];
+      case 'welcomefrompriestess':
+        return [base, base, base, '#ff3b30'];
+      case 'welcomefromcivilight':
+        return [base, base, base, '#ffb6c1'];
+      default:
+        return [base];
+    }
+  }, [session.userType]);
+  const particlesOptions = useMemo(() => ({
+    preset: 'links',
+    background: {
+      color: {
+        value: 'transparent',
+      },
+    },
+    fullScreen: {
+      enable: false,
+      zIndex: 0,
+    },
+    particles: {
+      color: {
+        value: particlePalette,
+      },
+      links: {
+        color: {
+          value: particlePalette,
+        },
+        opacity: 0.9,
+        width: 2.5,
+      },
+      size: {
+        value: 3,
+      },
+    },
+  }), [particlePalette]);
 
-  if (!session.isAuthenticated) {
-    return (
-      <div className="app-root">
-        <Login onAuthenticated={handleAuthenticated} />
-      </div>
-    );
-  }
-
-  return (
-    <div className="app-root">
-      <Routes>
+  const authenticatedContent = (
+    <Routes>
         <Route
           path="/dashboard"
           element={(
@@ -266,6 +318,19 @@ function App() {
               <OperatorTable
                 operatorStatus={operatorMeta}
                 onBack={() => navigate('/dashboard')}
+              />
+            ) : (
+              <Navigate to="/dashboard" replace />
+            )
+          }
+        />
+        <Route
+          path="/operator-table/operator/:operatorId"
+          element={
+            canAccessOperators ? (
+              <OperatorEntry
+                operatorStatus={operatorMeta}
+                onBack={() => navigate('/operator-table')}
               />
             ) : (
               <Navigate to="/dashboard" replace />
@@ -329,6 +394,24 @@ function App() {
         />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
+  );
+
+  const content = session.isAuthenticated ? authenticatedContent : (
+    <Login onAuthenticated={handleAuthenticated} />
+  );
+
+  return (
+    <div className="app-root">
+      {particlesReady && (
+        <Particles
+          id="tsparticles"
+          className="particles-background"
+          options={particlesOptions}
+        />
+      )}
+      <div className="app-content">
+        {content}
+      </div>
     </div>
   );
 }

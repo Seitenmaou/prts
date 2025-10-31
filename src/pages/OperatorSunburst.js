@@ -4,11 +4,52 @@ import {
   useRef,
   useState,
 } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Plotly from 'plotly.js-dist';
+import {
+  GRAPH_TEXT_COLOR,
+  SUNBURST_COLORWAY,
+} from '../constants/colorPalettes';
 
 const resolveOperatorLabel = (record) => (
   record?.name_code ?? record?.code ?? record?.name_real
 );
+
+const resolveOperatorIdentifier = (record, fallbackIndex) => {
+  if (!record || typeof record !== 'object') {
+    if (fallbackIndex === null || fallbackIndex === undefined) {
+      return null;
+    }
+    return String(fallbackIndex);
+  }
+
+  const rawId = record.ID ?? record.id ?? record.operator_id;
+  if (rawId !== null && rawId !== undefined) {
+    const trimmed = String(rawId).trim();
+    if (trimmed.length > 0) {
+      return trimmed;
+    }
+  }
+
+  if (fallbackIndex === null || fallbackIndex === undefined) {
+    return null;
+  }
+
+  return String(fallbackIndex);
+};
+
+const buildOperatorDetailPath = (identifier) => {
+  if (identifier === null || identifier === undefined) {
+    return null;
+  }
+  return `/operator-table/operator/${encodeURIComponent(String(identifier))}`;
+};
+
+const AFFILIATION_LABEL_FIELD = '__sunburst_affiliation_label';
+const AFFILIATION_ORIGIN_FIELD = '__sunburst_affiliation_origin';
+const AFFILIATION_PRIMARY_ORIGIN = 'primary';
+const AFFILIATION_SECONDARY_ORIGIN = 'secondary';
+const AFFILIATION_SECONDARY_TEXT_COLOR = '#0F7D8C';
 
 const HIERARCHY_OPTIONS = [
   {
@@ -97,6 +138,71 @@ const HIERARCHY_OPTIONS = [
       },
     ],
   },
+  {
+    key: 'affiliation-operator',
+    label: 'Affiliation › Operator',
+    transformRecords: (source) => {
+      if (!Array.isArray(source)) {
+        return [];
+      }
+
+      const hasLabel = (value) => {
+        if (typeof value === 'string') {
+          return value.trim().length > 0;
+        }
+        return value !== null && value !== undefined;
+      };
+
+      return source.flatMap((record) => {
+        const entries = [];
+        const addEntry = (label, origin) => {
+          entries.push({
+            ...record,
+            [AFFILIATION_LABEL_FIELD]: label,
+            [AFFILIATION_ORIGIN_FIELD]: origin,
+          });
+        };
+
+        if (hasLabel(record?.affiliation_primary)) {
+          addEntry(record.affiliation_primary, AFFILIATION_PRIMARY_ORIGIN);
+        }
+        if (hasLabel(record?.affiliation_secondary)) {
+          addEntry(record.affiliation_secondary, AFFILIATION_SECONDARY_ORIGIN);
+        }
+        if (entries.length === 0) {
+          addEntry(null, AFFILIATION_PRIMARY_ORIGIN);
+        }
+
+        return entries;
+      });
+    },
+    levels: [
+      {
+        key: 'affiliation',
+        field: AFFILIATION_LABEL_FIELD,
+        fallback: 'unaffiliated',
+        legend: 'affiliation',
+      },
+      {
+        key: 'operator',
+        field: 'name_code',
+        fallback: 'unnamed operator',
+        legend: 'name_code',
+        resolve: resolveOperatorLabel,
+        leaf: true,
+        insideTextColor: (record) => (
+          record?.[AFFILIATION_ORIGIN_FIELD] === AFFILIATION_SECONDARY_ORIGIN
+            ? AFFILIATION_SECONDARY_TEXT_COLOR
+            : GRAPH_TEXT_COLOR
+        ),
+        outsideTextColor: (record) => (
+          record?.[AFFILIATION_ORIGIN_FIELD] === AFFILIATION_SECONDARY_ORIGIN
+            ? AFFILIATION_SECONDARY_TEXT_COLOR
+            : GRAPH_TEXT_COLOR
+        ),
+      },
+    ],
+  },
 ];
 
 const sanitizeLabel = (value, fallback) => {
@@ -159,6 +265,33 @@ const buildSunburstData = (records, hierarchy) => {
       };
 
       node.value += 1;
+
+      if (isLeaf && node.operatorDetailPath === undefined) {
+        const identifier = resolveOperatorIdentifier(record, recordIndex);
+        const detailPath = buildOperatorDetailPath(identifier);
+        if (detailPath) {
+          node.operatorDetailPath = detailPath;
+        }
+      }
+
+      if (node.insideTextColor === undefined && level.insideTextColor !== undefined) {
+        const resolvedInsideColor = typeof level.insideTextColor === 'function'
+          ? level.insideTextColor(record, recordIndex, level, node)
+          : level.insideTextColor;
+        if (resolvedInsideColor) {
+          node.insideTextColor = resolvedInsideColor;
+        }
+      }
+
+      if (node.outsideTextColor === undefined && level.outsideTextColor !== undefined) {
+        const resolvedOutsideColor = typeof level.outsideTextColor === 'function'
+          ? level.outsideTextColor(record, recordIndex, level, node)
+          : level.outsideTextColor;
+        if (resolvedOutsideColor) {
+          node.outsideTextColor = resolvedOutsideColor;
+        }
+      }
+
       nodes.set(nodeId, node);
       parentId = nodeId;
     });
@@ -168,36 +301,60 @@ const buildSunburstData = (records, hierarchy) => {
   const parents = [];
   const values = [];
   const ids = [];
+  const insideTextColors = [];
+  const outsideTextColors = [];
+  const detailPathByNode = {};
 
   nodes.forEach((node) => {
     labels.push(node.label);
     parents.push(node.parent);
     values.push(node.value);
     ids.push(node.id);
+    insideTextColors.push(node.insideTextColor ?? GRAPH_TEXT_COLOR);
+    outsideTextColors.push(node.outsideTextColor ?? GRAPH_TEXT_COLOR);
+    if (node.operatorDetailPath) {
+      detailPathByNode[node.id] = node.operatorDetailPath;
+    }
   });
 
-  return { labels, parents, values, ids };
+  return {
+    labels,
+    parents,
+    values,
+    ids,
+    insideTextColors,
+    outsideTextColors,
+    detailPathByNode,
+  };
 };
 
 const OperatorSunburst = ({ operatorStatus, onBack }) => {
   const status = operatorStatus?.status ?? { state: 'idle', error: null };
   const rawRecords = operatorStatus?.data;
-  const records = useMemo(
-    () => (Array.isArray(rawRecords) ? rawRecords : []),
-    [rawRecords],
-  );
-  const plotRef = useRef(null);
   const [activeHierarchyKey, setActiveHierarchyKey] = useState(HIERARCHY_OPTIONS[0].key);
+  const totalRecords = Array.isArray(rawRecords) ? rawRecords.length : 0;
 
   const activeHierarchy = useMemo(
     () => HIERARCHY_OPTIONS.find((entry) => entry.key === activeHierarchyKey) ?? HIERARCHY_OPTIONS[0],
     [activeHierarchyKey],
   );
 
+  const records = useMemo(() => {
+    const base = Array.isArray(rawRecords) ? rawRecords : [];
+    if (activeHierarchy && typeof activeHierarchy.transformRecords === 'function') {
+      return activeHierarchy.transformRecords(base);
+    }
+    return base;
+  }, [rawRecords, activeHierarchy]);
+
+  const plotRef = useRef(null);
+
   const sunburstData = useMemo(
     () => buildSunburstData(records, activeHierarchy),
     [records, activeHierarchy],
   );
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     const node = plotRef.current;
@@ -223,10 +380,12 @@ const OperatorSunburst = ({ operatorStatus, onBack }) => {
       insidetextfont: {
         family: 'Courier New, monospace',
         size: 12,
+        color: sunburstData.insideTextColors,
       },
       outsidetextfont: {
         family: 'Courier New, monospace',
         size: 12,
+        color: sunburstData.outsideTextColors,
       },
     };
 
@@ -235,19 +394,10 @@ const OperatorSunburst = ({ operatorStatus, onBack }) => {
       plot_bgcolor: 'rgba(0,0,0,0)',
       font: {
         family: 'Courier New, monospace',
-        color: '#C5F5CC',
+        color: GRAPH_TEXT_COLOR,
       },
       margin: { t: 42, l: 24, r: 24, b: 24 },
-      sunburstcolorway: [
-        '#9AFF9A',
-        '#8DF6E8',
-        '#8DA2FF',
-        '#C6A4FF',
-        '#F2A5D6',
-        '#FFD38A',
-        '#DAFF9E',
-        '#76D9C5',
-      ],
+      sunburstcolorway: SUNBURST_COLORWAY,
       extendsunburstcolors: true,
       hoverlabel: {
         bgcolor: 'rgba(6, 18, 16, 0.92)',
@@ -266,6 +416,35 @@ const OperatorSunburst = ({ operatorStatus, onBack }) => {
       modeBarButtonsToRemove: ['lasso2d', 'select2d'],
     });
 
+    const detailPathByNode = sunburstData.detailPathByNode ?? {};
+
+    const handlePointClick = (event) => {
+      const originalEvent = event?.event;
+      if (originalEvent && originalEvent.button !== 0) {
+        return;
+      }
+      const point = event?.points?.[0];
+      if (!point || !point.id) {
+        return;
+      }
+
+      const detailPath = detailPathByNode[point.id];
+      if (!detailPath) {
+        return;
+      }
+
+      if (originalEvent) {
+        originalEvent.preventDefault();
+        originalEvent.stopPropagation();
+      }
+
+      navigate(detailPath);
+    };
+
+    if (typeof node.on === 'function') {
+      node.on('plotly_click', handlePointClick);
+    }
+
     const handleResize = () => {
       Plotly.Plots.resize(node);
     };
@@ -274,9 +453,12 @@ const OperatorSunburst = ({ operatorStatus, onBack }) => {
 
     return () => {
       window.removeEventListener('resize', handleResize);
+      if (typeof node.removeListener === 'function') {
+        node.removeListener('plotly_click', handlePointClick);
+      }
       Plotly.purge(node);
     };
-  }, [sunburstData]);
+  }, [sunburstData, navigate]);
 
   const describeLayer = (index, total) => {
     if (total === 1) {
@@ -302,13 +484,13 @@ const OperatorSunburst = ({ operatorStatus, onBack }) => {
       return `link failed :: ${status.error ?? 'telemetry offline'}`;
     }
     if (status.state === 'loaded') {
-      return `link stable :: ${records.length} records cached`;
+      return `link stable :: ${totalRecords} records cached`;
     }
     return 'link dormant :: awaiting dataset';
   })();
 
-  const isReady = status.state === 'loaded' && records.length > 0 && sunburstData;
-  const canSelectHierarchy = status.state === 'loaded' && records.length > 0;
+  const isReady = status.state === 'loaded' && totalRecords > 0 && sunburstData;
+  const canSelectHierarchy = status.state === 'loaded' && totalRecords > 0;
 
   return (
     <div className="operator-layout">
@@ -352,7 +534,7 @@ const OperatorSunburst = ({ operatorStatus, onBack }) => {
             unable to render telemetry
           </div>
         )}
-        {status.state === 'loaded' && records.length === 0 && (
+        {status.state === 'loaded' && totalRecords === 0 && (
           <div className="operator-placeholder">dataset returned no entries</div>
         )}
         {isReady && (
@@ -374,7 +556,8 @@ const OperatorSunburst = ({ operatorStatus, onBack }) => {
                 </div>
               ))}
               <div className="sunburst-menu__note">
-                click to drill; right-click to ascend
+                click to drill; left-click operator segments to open dossier; right-click to ascend
+                {activeHierarchy.key === 'affiliation-operator' && ' :: teal labels denote secondary affiliations'}
               </div>
             </aside>
           </div>

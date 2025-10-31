@@ -5,6 +5,11 @@ import {
   useState,
 } from 'react';
 import Plotly from 'plotly.js-dist';
+import {
+  GRAPH_AXIS_LINE_COLOR,
+  GRAPH_TEXT_COLOR,
+  TIMELINE_COLORWAY,
+} from '../constants/colorPalettes';
 
 const EMPTY_ARRAY = [];
 const METRIC_OPTIONS = [
@@ -35,21 +40,6 @@ const FILTER_OPTIONS = [
   { key: 'class', label: 'group by class' },
   { key: 'rarity', label: 'group by rarity' },
   { key: 'gender', label: 'group by gender category' },
-];
-
-const TIMELINE_COLORWAY = [
-  '#8DF6E8',
-  '#9AFF9A',
-  '#C6A4FF',
-  '#F2A5D6',
-  '#FFD38A',
-  '#DAFF9E',
-  '#76D9C5',
-  '#FF9CA8',
-  '#FF6F76',
-  '#4DD6FF',
-  '#A6B1FF',
-  '#CFEA9A',
 ];
 
 const FILTER_CONFIG = {
@@ -805,7 +795,7 @@ const OperatorTimeline = ({ operatorStatus, onBack }) => {
       plot_bgcolor: 'rgba(0,0,0,0)',
       font: {
         family: 'Courier New, monospace',
-        color: '#C5F5CC',
+        color: GRAPH_TEXT_COLOR,
       },
       margin: { t: 36, r: 18, b: 48, l: 56 },
       hoverlabel: {
@@ -820,15 +810,27 @@ const OperatorTimeline = ({ operatorStatus, onBack }) => {
       xaxis: {
         title: 'date_joined',
         gridcolor: 'rgba(77, 255, 167, 0.15)',
+        linecolor: GRAPH_AXIS_LINE_COLOR,
         tickfont: {
           size: 11,
+          color: GRAPH_TEXT_COLOR,
+        },
+        titlefont: {
+          size: 12,
+          color: GRAPH_TEXT_COLOR,
         },
       },
       yaxis: {
         title: activePlot.yAxisTitle,
         gridcolor: 'rgba(77, 255, 167, 0.12)',
+        linecolor: GRAPH_AXIS_LINE_COLOR,
         tickfont: {
           size: 11,
+          color: GRAPH_TEXT_COLOR,
+        },
+        titlefont: {
+          size: 12,
+          color: GRAPH_TEXT_COLOR,
         },
       },
       hovermode: 'x unified',
@@ -840,6 +842,7 @@ const OperatorTimeline = ({ operatorStatus, onBack }) => {
         x: 0,
         font: {
           size: 10,
+          color: GRAPH_TEXT_COLOR,
         },
       },
     };

@@ -1,4 +1,32 @@
 import { useMemo } from 'react';
+import { Link } from 'react-router-dom';
+import { formatRoundedValue } from '../utils/numberFormat';
+
+const LINKABLE_COLUMN_KEYS = new Set(['name_code', 'code', 'name_real']);
+
+const getOperatorDetailPath = (record, recordIndex) => {
+  if (!record || typeof record !== 'object') {
+    return null;
+  }
+
+  const rawId = record.ID ?? record.id ?? record.operator_id;
+  const resolvedId = (() => {
+    if (rawId === null || rawId === undefined) {
+      return recordIndex;
+    }
+    const trimmed = String(rawId).trim();
+    if (trimmed.length === 0) {
+      return recordIndex;
+    }
+    return trimmed;
+  })();
+
+  if (resolvedId === null || resolvedId === undefined) {
+    return null;
+  }
+
+  return `/operator-table/operator/${encodeURIComponent(String(resolvedId))}`;
+};
 
 const OperatorDataTable = ({
   columns,
@@ -15,12 +43,28 @@ const OperatorDataTable = ({
       return [];
     }
 
-    return records.map((record) => columns.map((column) => {
+    return records.map((record, recordIndex) => columns.map((column) => {
       const value = record?.[column.key];
-      if (value === null || value === undefined || value === '') {
-        return '—';
+      const displayValue = (
+        value === null || value === undefined || value === ''
+          ? '—'
+          : formatRoundedValue(value)
+      );
+
+      if (!LINKABLE_COLUMN_KEYS.has(column.key)) {
+        return displayValue;
       }
-      return value;
+
+      const detailPath = getOperatorDetailPath(record, recordIndex);
+      if (!detailPath) {
+        return displayValue;
+      }
+
+      return (
+        <Link to={detailPath} className="operator-table-link">
+          {displayValue}
+        </Link>
+      );
     }));
   }, [columns, records]);
 
