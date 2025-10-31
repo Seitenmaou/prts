@@ -49,7 +49,7 @@ const Login = ({ onAuthenticated }) => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [logLines, setLogLines] = useState(() => ([
     { id: 'init-1', text: '/init :: establishing link...', variant: 'muted' },
-    { id: 'init-2', text: 'tip :: hold enter for elevated protocol', variant: 'muted' },
+
   ]));
 
   const passwordTimelineRef = useRef([]);

@@ -4,6 +4,9 @@ const OperatorStats = ({
   onOpenSunburst,
   onOpenScatter,
   onOpenTimeline,
+  onOpenBar,
+  onOpenParallel,
+  onOpenBox,
 }) => {
   const status = operatorStatus?.status ?? { state: 'idle', error: null };
   const rows = operatorStatus?.rows ?? 0;
@@ -40,21 +43,7 @@ const OperatorStats = ({
           {datasetStatusLabel}
         </div>
         <div className="stats-grid">
-          <button
-            type="button"
-            className="stats-card"
-            onClick={onOpenSunburst}
-          >
-            <div className="stats-card__halo">
-              <div className="stats-card__halo-ring" />
-              <div className="stats-card__halo-ring stats-card__halo-ring--inner" />
-              <div className="sunburst-visual">
-                <div className="sunburst-visual__ring sunburst-visual__ring--outer" />
-                <div className="sunburst-visual__ring sunburst-visual__ring--mid" />
-                <div className="sunburst-visual__ring sunburst-visual__ring--inner" />
-                <div className="sunburst-visual__core" />
-              </div>
-            </div>
+          <button type="button" className="stats-card" onClick={onOpenSunburst}>
             <div className="stats-card__content">
               <div className="stats-card__title">Distribution: Sunburst</div>
               <p className="stats-card__copy">
@@ -64,9 +53,6 @@ const OperatorStats = ({
             </div>
           </button>
           <button type="button" className="stats-card" onClick={onOpenScatter}>
-            <div className="stats-card__halo">
-              <div className="stats-card__count">◎</div>
-            </div>
             <div className="stats-card__content">
               <div className="stats-card__title">Comparison: Scatter</div>
               <p className="stats-card__copy">
@@ -80,47 +66,53 @@ const OperatorStats = ({
             className="stats-card"
             onClick={onOpenTimeline}
           >
-            <div className="stats-card__halo">
-              <div className="stats-card__halo-ring" />
-              <div className="stats-card__halo-ring stats-card__halo-ring--inner" />
-              <div className="stats-card__count">⟳</div>
-            </div>
             <div className="stats-card__content">
-              <div className="stats-card__title">Join Date Timeline</div>
+              <div className="stats-card__title">Timeline: Join Date</div>
               <p className="stats-card__copy">
                 cumulative operator onboarding mapped across recorded join dates.
               </p>
               <div className="stats-card__meta">timeline channel :: primed</div>
             </div>
           </button>
-          <div className="stats-card" role="presentation">
-            <div className="stats-card__halo">
-              <div className="stats-card__halo-ring" />
-              <div className="stats-card__halo-ring stats-card__halo-ring--inner" />
-              <div className="stats-card__count">24</div>
-            </div>
+          <button
+            type="button"
+            className="stats-card"
+            onClick={onOpenBar}
+          >
             <div className="stats-card__content">
-              <div className="stats-card__title">Role Composition</div>
+              <div className="stats-card__title">Comparison: Categories</div>
               <p className="stats-card__copy">
-                placeholder breakdown of operator archetypes and frontline readiness ratios.
+                animated breakdowns across rarity, class, gender, species, and affiliation with a join-date slider.
               </p>
-              <div className="stats-card__meta">stacked bars :: pending inputs</div>
+              <div className="stats-card__meta">bar channel :: ready</div>
             </div>
-          </div>
-          <div className="stats-card" role="presentation">
-            <div className="stats-card__halo">
-              <div className="stats-card__halo-ring" />
-              <div className="stats-card__halo-ring stats-card__halo-ring--inner" />
-              <div className="stats-card__count">—</div>
-            </div>
+          </button>
+          <button
+            type="button"
+            className="stats-card"
+            onClick={onOpenParallel}
+          >
             <div className="stats-card__content">
-              <div className="stats-card__title">Field Signals</div>
+              <div className="stats-card__title">Comparison: Parallel</div>
               <p className="stats-card__copy">
-                reserved viewport for anomaly detection and tactical alerts visualization.
+                layered parallel coordinates tracking combat metrics with categorical encoding.
               </p>
-              <div className="stats-card__meta">heatmap channel :: standby</div>
+              <div className="stats-card__meta">parallel channel :: primed</div>
             </div>
-          </div>
+          </button>
+          <button
+            type="button"
+            className="stats-card"
+            onClick={onOpenBox}
+          >
+            <div className="stats-card__content">
+              <div className="stats-card__title">Analysis: Combat Status</div>
+              <p className="stats-card__copy">
+                comparative box plots of combat performance segmented by operator class.
+              </p>
+              <div className="stats-card__meta">box channel :: ready</div>
+            </div>
+          </button>
         </div>
       </div>
     </div>

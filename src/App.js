@@ -12,11 +12,14 @@ import './App.css';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import OperatorTable from './pages/OperatorTable';
-import OperatorSunburst from './pages/OperatorSunburst';
 import OperatorStats from './pages/OperatorStats';
 import OperatorScatter from './pages/OperatorScatter';
+import OperatorSunburst from './pages/OperatorSunburst';
+import OperatorParallel from './pages/OperatorParallel';
 import OperatorTimeline from './pages/OperatorTimeline';
 import OperatorEntry from './pages/OperatorEntry';
+import OperatorBar from './pages/OperatorBar';
+import OperatorBox from './pages/OperatorBox';
 import { isElevatedUserType } from './constants/userTypes';
 
 const OPERATOR_API_URL = 'https://script.google.com/macros/s/AKfycbxNVDGS6t7iJUc-5hnx0pze678LQ6B5pVeUeoSmd1WJ4-9PIV1F0d2qobTtQXkAsujM/exec';
@@ -347,6 +350,9 @@ function App() {
                 onOpenSunburst={() => navigate('/operator-stats/sunburst')}
                 onOpenScatter={() => navigate('/operator-stats/scatter')}
                 onOpenTimeline={() => navigate('/operator-stats/timeline')}
+                onOpenBar={() => navigate('/operator-stats/bar')}
+                onOpenParallel={() => navigate('/operator-stats/parallel')}
+                onOpenBox={() => navigate('/operator-stats/box')}
               />
             ) : (
               <Navigate to="/dashboard" replace />
@@ -358,6 +364,19 @@ function App() {
           element={
             canAccessOperators ? (
               <OperatorSunburst
+                operatorStatus={operatorMeta}
+                onBack={() => navigate('/operator-stats')}
+              />
+            ) : (
+              <Navigate to="/dashboard" replace />
+            )
+          }
+        />
+        <Route
+          path="/operator-stats/bar"
+          element={
+            canAccessOperators ? (
+              <OperatorBar
                 operatorStatus={operatorMeta}
                 onBack={() => navigate('/operator-stats')}
               />
@@ -384,6 +403,32 @@ function App() {
           element={
             canAccessOperators ? (
               <OperatorScatter
+                operatorStatus={operatorMeta}
+                onBack={() => navigate('/operator-stats')}
+              />
+            ) : (
+              <Navigate to="/dashboard" replace />
+            )
+          }
+        />
+        <Route
+          path="/operator-stats/parallel"
+          element={
+            canAccessOperators ? (
+              <OperatorParallel
+                operatorStatus={operatorMeta}
+                onBack={() => navigate('/operator-stats')}
+              />
+            ) : (
+              <Navigate to="/dashboard" replace />
+            )
+          }
+        />
+        <Route
+          path="/operator-stats/box"
+          element={
+            canAccessOperators ? (
+              <OperatorBox
                 operatorStatus={operatorMeta}
                 onBack={() => navigate('/operator-stats')}
               />
