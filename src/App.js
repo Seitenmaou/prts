@@ -1,4 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   Navigate,
   Route,
@@ -21,6 +28,194 @@ import OperatorEntry from './pages/operators/OperatorEntry';
 import OperatorBar from './pages/operators/analytics/charts/OperatorBar';
 import OperatorBox from './pages/operators/analytics/charts/OperatorBox';
 import { isElevatedUserType } from './constants/userTypes';
+
+const hexToRgb = (value) => {
+  if (typeof value !== 'string') {
+    return null;
+  }
+  const normalized = value.trim().replace(/^#/, '');
+  if (normalized.length !== 3 && normalized.length !== 6) {
+    return null;
+  }
+  const expanded = normalized.length === 3
+    ? normalized.split('').map((char) => char + char).join('')
+    : normalized;
+  const numeric = Number.parseInt(expanded, 16);
+  if (Number.isNaN(numeric)) {
+    return null;
+  }
+  return {
+    r: (numeric >> 16) & 0xff,
+    g: (numeric >> 8) & 0xff,
+    b: numeric & 0xff,
+  };
+};
+
+const rgbToHsl = ({ r, g, b }) => {
+  if (![r, g, b].every((channel) => typeof channel === 'number')) {
+    return null;
+  }
+  const rNorm = r / 255;
+  const gNorm = g / 255;
+  const bNorm = b / 255;
+  const max = Math.max(rNorm, gNorm, bNorm);
+  const min = Math.min(rNorm, gNorm, bNorm);
+  const delta = max - min;
+  let h = 0;
+  if (delta !== 0) {
+    switch (max) {
+      case rNorm:
+        h = ((gNorm - bNorm) / delta) % 6;
+        break;
+      case gNorm:
+        h = (bNorm - rNorm) / delta + 2;
+        break;
+      default:
+        h = (rNorm - gNorm) / delta + 4;
+        break;
+    }
+    h *= 60;
+    if (h < 0) {
+      h += 360;
+    }
+  }
+  const l = (max + min) / 2;
+  const s = delta === 0 ? 0 : delta / (1 - Math.abs(2 * l - 1));
+
+  return {
+    h,
+    s: s * 100,
+    l: l * 100,
+  };
+};
+
+const applyHslAnimation = (target, hsl) => {
+  if (!target || !hsl) {
+    return;
+  }
+  if (target.h && typeof target.h.value === 'number') {
+    target.h.value = hsl.h;
+  }
+  if (target.s && typeof target.s.value === 'number') {
+    target.s.value = hsl.s;
+  }
+  if (target.l && typeof target.l.value === 'number') {
+    target.l.value = hsl.l;
+  }
+};
+
+const updateStrokeOptionsColor = (strokeOptions, color) => {
+  if (!strokeOptions) {
+    return;
+  }
+  const applyColor = (stroke) => {
+    if (!stroke) {
+      return;
+    }
+    if (typeof stroke.color === 'string') {
+      // eslint-disable-next-line no-param-reassign
+      stroke.color = color;
+      return;
+    }
+    if (stroke.color && typeof stroke.color === 'object' && 'value' in stroke.color) {
+      // eslint-disable-next-line no-param-reassign
+      stroke.color.value = color;
+    }
+  };
+  if (Array.isArray(strokeOptions)) {
+    strokeOptions.forEach(applyColor);
+    return;
+  }
+  applyColor(strokeOptions);
+};
+
+const updateParticleSystemColor = (container, color) => {
+  if (!container || typeof color !== 'string') {
+    return;
+  }
+
+  const rgb = hexToRgb(color);
+  if (!rgb) {
+    return;
+  }
+
+  const hsl = rgbToHsl(rgb);
+  if (!hsl) {
+    return;
+  }
+
+  const applyOptionsColor = (options) => {
+    if (!options?.color) {
+      return;
+    }
+    if (typeof options.color === 'string') {
+      options.color = color;
+    } else if ('value' in options.color) {
+      options.color.value = color;
+    }
+  };
+
+  applyOptionsColor(container.options?.particles);
+  applyOptionsColor(container.actualOptions?.particles);
+
+  applyOptionsColor(container.options?.particles?.links);
+  applyOptionsColor(container.actualOptions?.particles?.links);
+
+  if (container.particles?.linksColor) {
+    container.particles.linksColor = { ...rgb };
+  }
+  if (container.particles?.linksColors instanceof Map) {
+    for (const key of container.particles.linksColors.keys()) {
+      container.particles.linksColors.set(key, { ...rgb });
+    }
+  }
+
+  const particlesArray = container.particles?.array;
+  if (Array.isArray(particlesArray)) {
+    particlesArray.forEach((particle) => {
+      if (!particle) {
+        return;
+      }
+      if (particle.color) {
+        applyHslAnimation(particle.color, hsl);
+      }
+      if (particle.strokeColor) {
+        applyHslAnimation(particle.strokeColor, hsl);
+      }
+      if (particle.bubble) {
+        particle.bubble.color = { ...hsl };
+        particle.bubble.finalColor = { ...hsl };
+      }
+      if (particle.options?.color) {
+        if (typeof particle.options.color === 'string') {
+          particle.options.color = color;
+        } else if ('value' in particle.options.color) {
+          particle.options.color.value = color;
+        }
+      }
+      if (particle.options?.links?.color) {
+        if (typeof particle.options.links.color === 'string') {
+          particle.options.links.color = color;
+        } else if ('value' in particle.options.links.color) {
+          particle.options.links.color.value = color;
+        }
+      }
+      if (particle.options?.stroke) {
+        updateStrokeOptionsColor(particle.options.stroke, color);
+      }
+    });
+  }
+};
+
+const StableParticles = memo(
+  Particles,
+  (prevProps, nextProps) => (
+    prevProps.className === nextProps.className
+    && prevProps.id === nextProps.id
+    && prevProps.options === nextProps.options
+    && prevProps.particlesLoaded === nextProps.particlesLoaded
+  ),
+);
 
 // Remote endpoint that delivers the operator dataset spreadsheet.
 const OPERATOR_API_URL = 'https://script.google.com/macros/s/AKfycbxNVDGS6t7iJUc-5hnx0pze678LQ6B5pVeUeoSmd1WJ4-9PIV1F0d2qobTtQXkAsujM/exec';
@@ -270,6 +465,8 @@ function App() {
         return '#000000';
     }
   }, [session.userType]);
+  const particlesContainerRef = useRef(null);
+  const latestParticleColorRef = useRef(particleColor);
   const particlesOptions = useMemo(() => ({
     preset: 'links',
     background: {
@@ -283,11 +480,11 @@ function App() {
     },
     particles: {
       color: {
-        value: particleColor,
+        value: '#000000',
       },
       links: {
         color: {
-          value: particleColor,
+          value: '#000000',
         },
         opacity: 0.9,
         width: 2.5,
@@ -296,7 +493,20 @@ function App() {
         value: 3,
       },
     },
-  }), [particleColor]);
+  }), []);
+  const handleParticlesLoaded = useCallback((container) => {
+    particlesContainerRef.current = container;
+    if (container) {
+      updateParticleSystemColor(container, latestParticleColorRef.current);
+    }
+  }, []);
+
+  useEffect(() => {
+    latestParticleColorRef.current = particleColor;
+    if (particlesContainerRef.current) {
+      updateParticleSystemColor(particlesContainerRef.current, particleColor);
+    }
+  }, [particleColor]);
 
   const authenticatedContent = (
     <Routes>
@@ -448,10 +658,11 @@ function App() {
   return (
     <div className="app-root">
       {particlesReady && (
-        <Particles
+        <StableParticles
           id="tsparticles"
           className="particles-background"
           options={particlesOptions}
+          particlesLoaded={handleParticlesLoaded}
         />
       )}
       <div className="app-content">
