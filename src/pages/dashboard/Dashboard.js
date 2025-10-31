@@ -1,3 +1,4 @@
+// Primary landing view after login that routes to operator modules.
 const Dashboard = ({
   userType,
   onReset,
@@ -25,7 +26,7 @@ const Dashboard = ({
       <div className="dashboard-panel">
         <div className="dashboard-header">session granted</div>
         <div className="dashboard-content">
-          <h1>Hello {userType}</h1>
+          <h1>Welcome back, {userType}</h1>
           <p>
             channel open :: privileges mapped to
             {' '}

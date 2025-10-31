@@ -9,7 +9,9 @@ import Plotly from 'plotly.js-dist';
 import {
   GRAPH_TEXT_COLOR,
   SUNBURST_COLORWAY,
-} from '../constants/colorPalettes';
+} from '../../../../constants/colorPalettes';
+
+// Sunburst breakdowns that link factions, classes, and individual operators.
 
 const resolveOperatorLabel = (record) => (
   record?.name_code ?? record?.code ?? record?.name_real

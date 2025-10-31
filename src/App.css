@@ -1652,6 +1652,11 @@
   box-shadow: var(--prts-shadow-soft);
 }
 
+.operator-profile__section--photo {
+  align-items: center;
+  text-align: center;
+}
+
 .operator-profile__section-title {
   margin: 0;
   text-transform: uppercase;
@@ -1665,6 +1670,57 @@
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 1.2rem;
   margin: 0;
+}
+
+.operator-profile__photo-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+}
+
+.operator-profile__photo-frame {
+  position: relative;
+  width: 100%;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid var(--prts-border-soft);
+  background:
+    linear-gradient(150deg, rgba(0, 0, 0, 0.08), rgba(0, 0, 0, 0.16)),
+    rgba(0, 0, 0, 0.05);
+  aspect-ratio: 3 / 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.operator-profile__photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
+
+.operator-profile__photo-caption {
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  font-size: 0.75rem;
+  color: var(--prts-text-muted);
+}
+
+.operator-profile__photo-placeholder {
+  width: 100%;
+  border-radius: 14px;
+  border: 1px dashed var(--prts-border-soft);
+  padding: 2.5rem 1rem;
+  font-size: 0.85rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--prts-text-muted);
+  background:
+    linear-gradient(140deg, rgba(255, 255, 255, 0.22), rgba(0, 0, 0, 0.08)),
+    rgba(245, 245, 245, 0.5);
 }
 
 .operator-profile__field {

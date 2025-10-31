@@ -9,7 +9,9 @@ import {
   GRAPH_AXIS_LINE_COLOR,
   GRAPH_TEXT_COLOR,
   TIMELINE_COLORWAY,
-} from '../constants/colorPalettes';
+} from '../../../../constants/colorPalettes';
+
+// Timeline dashboard that replays operator onboarding metrics with filters.
 
 const EMPTY_ARRAY = [];
 const METRIC_OPTIONS = [

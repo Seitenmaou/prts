@@ -3,13 +3,15 @@ import {
   useMemo,
   useState,
 } from 'react';
-import OperatorDataTable from '../components/OperatorDataTable';
-import OperatorRankingSummary from '../components/OperatorRankingSummary';
+import OperatorDataTable from '../../components/OperatorDataTable';
+import OperatorRankingSummary from '../../components/OperatorRankingSummary';
 import {
   formatRoundedNumber,
   parseMaybeNumber,
   parseStatValue,
-} from '../utils/numberFormat';
+} from '../../utils/numberFormat';
+
+// Operator catalogue with tabbed medical/combat views and ranking rollups.
 
 const MEDICAL_COLUMNS = [
   { key: 'ID', label: 'ID', sortable: true },
@@ -20,8 +22,8 @@ const MEDICAL_COLUMNS = [
   { key: 'gender', label: 'gender', sortable: false, filterable: true },
   { key: 'height', label: 'height', sortable: true },
   { key: 'species', label: 'species', sortable: false, filterable: true },
-  { key: 'affiliation_location', label: 'affiliation_location', sortable: false, filterable: true },
-  { key: 'affiliation_organization', label: 'affiliation_organization', sortable: false, filterable: true },
+  { key: 'affiliation_primary', label: 'affiliation_primary', sortable: false, filterable: true },
+  { key: 'affiliation_secondary', label: 'affiliation_secondary', sortable: false, filterable: true },
   { key: 'place_birth', label: 'place_birth', sortable: false, filterable: true },
   { key: 'date_birth', label: 'date_birth', sortable: true },
   { key: 'medical_fusion', label: 'medical_fusion', sortable: true },

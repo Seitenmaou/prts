@@ -7,6 +7,8 @@ import {
 import { useParams } from 'react-router-dom';
 import Plotly from 'plotly.js-dist';
 
+// Detailed view for a single operator with optional metric charting.
+
 const getOperatorName = (record, fallbackLabel) => {
   if (!record || typeof record !== 'object') {
     return fallbackLabel;
@@ -62,6 +64,43 @@ const formatFieldValue = (value) => {
     return trimmed.length > 0 ? trimmed : '—';
   }
   return String(value);
+};
+
+const PHOTO_FIELD_CANDIDATES = [
+  'photoFilePath',
+  'photo_filepath',
+  'photo_file_path',
+  'photoPath',
+  'photo_path',
+  'photo',
+  'portraitFilePath',
+  'portrait_filepath',
+  'portrait_file_path',
+  'portraitPath',
+  'portrait_path',
+  'portrait',
+  'filepath',
+  'filePath',
+];
+
+const resolveOperatorPhotoPath = (record) => {
+  if (!record || typeof record !== 'object') {
+    return '';
+  }
+
+  for (let index = 0; index < PHOTO_FIELD_CANDIDATES.length; index += 1) {
+    const key = PHOTO_FIELD_CANDIDATES[index];
+    const value = record?.[key];
+    if (typeof value !== 'string') {
+      continue;
+    }
+    const trimmed = value.trim();
+    if (trimmed) {
+      return trimmed;
+    }
+  }
+
+  return '';
 };
 
 const IDENTITY_FIELDS = [
@@ -895,14 +934,15 @@ const OperatorEntry = ({ operatorStatus, onBack }) => {
         fields: [...AFFILIATION_FIELDS, ...MEDICAL_FIELDS],
       },
     ];
+    const photoPath = resolveOperatorPhotoPath(record);
 
     const comparisonDataset = comparisonData?.datasets?.[activeRadar.key] ?? null;
     const comparisonEntriesMap = new Map(
       (comparisonDataset?.entries ?? []).map((entry) => [entry.key, entry]),
     );
-  const comparisonEnabled = Boolean(comparisonDataset && comparisonDataset.hasData);
-  const comparisonLabel = comparisonData?.displayName ?? '';
-  const primaryRadarEntries = activeRadarData.entries ?? [];
+    const comparisonEnabled = Boolean(comparisonDataset && comparisonDataset.hasData);
+    const comparisonLabel = comparisonData?.displayName ?? '';
+    const primaryRadarEntries = activeRadarData.entries ?? [];
 
     return (
       <div className="operator-profile">
@@ -914,6 +954,26 @@ const OperatorEntry = ({ operatorStatus, onBack }) => {
         </header>
 
         <div className="operator-profile__grid">
+          <section className="operator-profile__section operator-profile__section--photo">
+            <h3 className="operator-profile__section-title">visual record</h3>
+            {photoPath ? (
+              <div className="operator-profile__photo-card">
+                <div className="operator-profile__photo-frame">
+                  <img
+                    className="operator-profile__photo"
+                    src={photoPath}
+                    alt={`${displayName} portrait`}
+                    loading="lazy"
+                  />
+                </div>
+                <div className="operator-profile__photo-caption">{displayName}</div>
+              </div>
+            ) : (
+              <div className="operator-profile__photo-placeholder">
+                Data not available
+              </div>
+            )}
+          </section>
           {infoSections.map((section) => (
             <section key={section.key} className="operator-profile__section">
               <h3 className="operator-profile__section-title">{section.title}</h3>

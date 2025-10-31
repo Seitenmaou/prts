@@ -9,19 +9,20 @@ import {
 import Particles, { initParticlesEngine } from '@tsparticles/react';
 import { loadLinksPreset } from '@tsparticles/preset-links';
 import './App.css';
-import Dashboard from './pages/Dashboard';
-import Login from './pages/Login';
-import OperatorTable from './pages/OperatorTable';
-import OperatorStats from './pages/OperatorStats';
-import OperatorScatter from './pages/OperatorScatter';
-import OperatorSunburst from './pages/OperatorSunburst';
-import OperatorParallel from './pages/OperatorParallel';
-import OperatorTimeline from './pages/OperatorTimeline';
-import OperatorEntry from './pages/OperatorEntry';
-import OperatorBar from './pages/OperatorBar';
-import OperatorBox from './pages/OperatorBox';
+import Dashboard from './pages/dashboard/Dashboard';
+import Login from './pages/auth/Login';
+import OperatorTable from './pages/operators/OperatorTable';
+import OperatorStats from './pages/operators/analytics/OperatorStats';
+import OperatorScatter from './pages/operators/analytics/charts/OperatorScatter';
+import OperatorSunburst from './pages/operators/analytics/charts/OperatorSunburst';
+import OperatorParallel from './pages/operators/analytics/charts/OperatorParallel';
+import OperatorTimeline from './pages/operators/analytics/charts/OperatorTimeline';
+import OperatorEntry from './pages/operators/OperatorEntry';
+import OperatorBar from './pages/operators/analytics/charts/OperatorBar';
+import OperatorBox from './pages/operators/analytics/charts/OperatorBox';
 import { isElevatedUserType } from './constants/userTypes';
 
+// Remote endpoint that delivers the operator dataset spreadsheet.
 const OPERATOR_API_URL = 'https://script.google.com/macros/s/AKfycbxNVDGS6t7iJUc-5hnx0pze678LQ6B5pVeUeoSmd1WJ4-9PIV1F0d2qobTtQXkAsujM/exec';
 const SESSION_STORAGE_KEY = 'prts-session';
 const SESSION_DURATION_MS = 4 * 60 * 60 * 1000;
@@ -257,17 +258,16 @@ function App() {
     data: operatorData,
     rows: operatorData.length,
   }), [operatorStatus, operatorData]);
-  const particlePalette = useMemo(() => {
-    const base = '#000000';
+  const particleColor = useMemo(() => {
     switch (session.userType) {
       case 'admin':
-        return [base, base, base, '#ffd60a'];
+        return '#ffd60a';
       case 'welcomefrompriestess':
-        return [base, base, base, '#ff3b30'];
+        return '#8b0000';
       case 'welcomefromcivilight':
-        return [base, base, base, '#ffb6c1'];
+        return '#ffb6c1';
       default:
-        return [base];
+        return '#000000';
     }
   }, [session.userType]);
   const particlesOptions = useMemo(() => ({
@@ -283,11 +283,11 @@ function App() {
     },
     particles: {
       color: {
-        value: particlePalette,
+        value: particleColor,
       },
       links: {
         color: {
-          value: particlePalette,
+          value: particleColor,
         },
         opacity: 0.9,
         width: 2.5,
@@ -296,7 +296,7 @@ function App() {
         value: 3,
       },
     },
-  }), [particlePalette]);
+  }), [particleColor]);
 
   const authenticatedContent = (
     <Routes>

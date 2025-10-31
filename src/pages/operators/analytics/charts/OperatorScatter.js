@@ -9,7 +9,9 @@ import {
   GRAPH_AXIS_LINE_COLOR,
   GRAPH_TEXT_COLOR,
   SCATTER_COLORWAY,
-} from '../constants/colorPalettes';
+} from '../../../../constants/colorPalettes';
+
+// Scatter plots that compare combat and medical metrics by operator class/rarity.
 
 const METRIC_OPTIONS = [
   { key: 'combat_hp', label: 'combat_hp' },

@@ -1,3 +1,4 @@
+// Hub page that links to the different analytics visualizations.
 const OperatorStats = ({
   operatorStatus,
   onBack,

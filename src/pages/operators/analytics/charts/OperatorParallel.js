@@ -7,7 +7,9 @@ import {
 import Plotly from 'plotly.js-dist';
 import {
   GRAPH_TEXT_COLOR,
-} from '../constants/colorPalettes';
+} from '../../../../constants/colorPalettes';
+
+// Parallel coordinates to compare combat and skill metrics across operators.
 
 const PARALLEL_DIMENSIONS = {
   combat: [

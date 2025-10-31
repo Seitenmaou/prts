@@ -10,7 +10,9 @@ import {
   GRAPH_TEXT_COLOR,
   SCATTER_COLORWAY,
   TIMELINE_COLORWAY,
-} from '../constants/colorPalettes';
+} from '../../../../constants/colorPalettes';
+
+// Animated category timelines that replay operator onboarding across dimensions.
 
 const labelCollator = new Intl.Collator('en', { numeric: true, sensitivity: 'base' });
 

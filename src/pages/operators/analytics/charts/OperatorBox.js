@@ -8,7 +8,9 @@ import Plotly from 'plotly.js-dist';
 import {
   GRAPH_TEXT_COLOR,
   SCATTER_COLORWAY,
-} from '../constants/colorPalettes';
+} from '../../../../constants/colorPalettes';
+
+// Class-based box plots for combat metrics with quick metric swapping.
 
 const METRIC_OPTIONS = [
   { key: 'combat_hp', label: 'combat_hp' },

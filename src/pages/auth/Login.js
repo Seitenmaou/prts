@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
+// Terminal-themed authentication screen with alternate access sequences.
+
 const USERNAME = 'oracle';
 const PASSWORD = 'ghostofbabel';
 const ADMIN_DELAY_THRESHOLD = 1000;
